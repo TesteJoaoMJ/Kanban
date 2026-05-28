@@ -1,0 +1,153 @@
+// =========================================================================
+// SETTINGS.SCSS - DEFINIÇÃO GLOBAL E TEMAS
+// =========================================================================
+
+/* Defaults do sistema (caso o JS não carregue ou cache limpo) */
+:root {
+  --sidebar-font-size: 14px;
+  --sidebar-icon-size: 22px;
+}
+
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+// -----------------------------------------------------------
+// 1. REGRAS GLOBAIS DE TAMANHO (DINÂMICAS)
+// Agora controladas pelas variáveis do default.vue
+// -----------------------------------------------------------
+.glassmorphism-sidebar,
+.v-navigation-drawer {
+  
+  // FONTE DINÂMICA (Controlada pelo Slider)
+  .v-list-item-title,
+  .v-list-item-subtitle,
+  .v-list-item__title,
+  .v-list-item__subtitle,
+  .fixed-font-size {
+    font-size: var(--sidebar-font-size) !important;
+    line-height: 1.2 !important;
+    font-weight: 700 !important;
+  }
+
+  // ÍCONES DINÂMICOS (Controlado pelo Slider)
+  .v-icon,
+  .v-list-item__prepend > .v-icon,
+  .v-list-item__append > .v-icon,
+  .fixed-size-icon {
+    font-size: var(--sidebar-icon-size) !important;
+    width: var(--sidebar-icon-size) !important;
+    height: var(--sidebar-icon-size) !important;
+    min-width: var(--sidebar-icon-size) !important;
+    opacity: 0.9;
+  }
+
+  // ALTURA DA LINHA (Ajusta conforme o ícone cresce)
+  .v-list-item {
+    min-height: calc(var(--sidebar-icon-size) + 14px) !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+  }
+  
+  // Headers de grupo (Proporcional, 85% do tamanho do texto normal)
+  .v-list-subheader,
+  .group-header-item .v-list-item-title,
+  .force-small-header {
+    font-size: calc(var(--sidebar-font-size) * 0.85) !important;
+    font-weight: 800 !important;
+    letter-spacing: 1px !important;
+    text-transform: uppercase !important;
+  }
+
+  // Espaçamento lateral do ícone
+  .v-list-item__prepend {
+    margin-right: 12px !important;
+  }
+}
+
+// -----------------------------------------------------------
+// 2. ESTILOS DE IDENTAÇÃO E HIERARQUIA (FILHOS)
+// -----------------------------------------------------------
+// Estilo base para itens filhos (com borda lateral indicativa)
+.child-item-style {
+  position: relative;
+  border-left: 2px solid transparent;
+  transition: all 0.2s ease;
+  background-color: rgba(255, 255, 255, 0.03); // Levemente mais claro que o fundo (para dark)
+}
+
+.child-item-style:hover, 
+.child-item-style.v-list-item--active {
+  background-color: rgba(var(--v-theme-primary), 0.1) !important;
+  border-left-color: rgb(var(--v-theme-primary));
+}
+
+// Remove o recuo excessivo, alinhando mais à esquerda
+.child-indent {
+  padding-left: 12px !important; // Reduzido de 24px+
+}
+
+.grandchild-indent {
+  padding-left: 24px !important; // Reduzido de 48px+
+}
+
+// -----------------------------------------------------------
+// 3. MODO LIGHT (APENAS CORES)
+// -----------------------------------------------------------
+body[data-style-mode="light"] {
+  
+  // Ajuste do fundo dos filhos no modo light
+  .child-item-style {
+      background-color: rgba(0, 0, 0, 0.03); // Levemente mais escuro que o fundo branco
+  }
+
+  // Background Geral
+  .v-application, 
+  .v-main,
+  .background-container {
+    background: #F4F6F8 !important;
+    background-image: none !important;
+  }
+
+  // Sidebar e Cards "Vidro" viram Brancos Sólidos
+  .v-navigation-drawer,
+  .glassmorphism-sidebar,
+  .glassmorphism-card-dialog { 
+    background: #FFFFFF !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-right: 1px solid #E0E0E0 !important;
+    
+    // Ajuste de contraste para textos no fundo branco
+    .text-white { color: rgba(0,0,0,0.87) !important; }
+    .text-grey-lighten-1 { color: rgba(0,0,0,0.6) !important; }
+    .text-grey-lighten-2 { color: rgba(0,0,0,0.6) !important; }
+    
+    // Ícones mais escuros no light mode
+    .v-icon {
+      color: rgba(0,0,0,0.7) !important;
+    }
+  }
+
+  // Remove efeitos de vidro globais
+  div[style*="backdrop-filter"],
+  .glass-effect {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important; 
+  }
+
+  // Esconde imagem de fundo
+  .background-container .v-img { display: none !important; }
+
+  // Estilo Zebrado para Listas (Apenas Cores)
+  .v-list > .v-list-item:nth-child(odd) {
+    background-color: #FFFFFF !important;
+  }
+  .v-list > .v-list-item:nth-child(even) {
+    background-color: #F8F9FA !important;
+  }
+  .v-list > .v-list-item:hover {
+    background-color: rgba(0,0,0,0.05) !important;
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "MJ Process Presence",
+  "version": "1.0",
+  "description": "Compartilha sua atividade de navegação com o sistema MJ Process.",
+  "permissions": [
+    "tabs",      // Permissão para ver as abas
+    "activeTab",
+    "storage"    // Para guardar o token do Supabase
+  ],
+  "host_permissions": [
+    "https://*.supabase.co/*" // Permissão para se comunicar com o Supabase
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html" // Uma pequena interface para o usuário
+  }
+}

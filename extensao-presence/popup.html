@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>MJ Process Presence</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="logo.png" alt="Logo MJ Process" class="logo"> <h1>MJ Process Presence</h1>
+        </header>
+
+        <div id="login-view">
+            <p class="description">Para começar, cole seu token de acesso do Supabase abaixo.</p>
+            <textarea id="token-input" placeholder="Cole seu access_token aqui..." rows="4"></textarea>
+            <button id="save-button" class="btn btn-primary">Salvar e Conectar</button>
+        </div>
+
+        <div id="status-view" class="hidden">
+            <p class="status-text">
+                Conectado como: <strong id="user-email"></strong>
+            </p>
+            <button id="logout-button" class="btn btn-secondary">Desconectar</button>
+        </div>
+
+        <footer>
+            <p id="message-area"></p>
+        </footer>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

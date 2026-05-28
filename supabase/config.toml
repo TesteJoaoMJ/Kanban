@@ -1,0 +1,88 @@
+
+[functions.daily-status-update]
+enabled = true
+verify_jwt = false
+import_map = "./functions/daily-status-update/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/daily-status-update/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/daily-status-update/*.html" ]
+
+[functions.secure-audit]
+enabled = true
+verify_jwt = true
+import_map = "./functions/secure-audit/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/secure-audit/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/secure-audit/*.html" ]
+
+[functions.inbound-emails]
+enabled = true
+verify_jwt = true
+import_map = "./functions/inbound-emails/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/inbound-emails/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/inbound-emails/*.html" ]
+
+[functions.generate-download-link]
+enabled = true
+verify_jwt = true
+import_map = "./functions/generate-download-link/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/generate-download-link/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/generate-download-link/*.html" ]
+
+[functions.list-r2-files]
+enabled = true
+verify_jwt = true
+import_map = "./functions/list-r2-files/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/list-r2-files/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/list-r2-files/*.html" ]
+
+[functions.send-approval-email]
+enabled = true
+verify_jwt = true
+import_map = "./functions/send-approval-email/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/send-approval-email/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/send-approval-email/*.html" ]
+
+[functions.send-vip-approval-email]
+enabled = true
+verify_jwt = true
+import_map = "./functions/send-vip-approval-email/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/send-vip-approval-email/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/send-vip-approval-email/*.html" ]
+
+[functions.send-approval-email-auth]
+enabled = true
+verify_jwt = true
+import_map = "./functions/send-approval-email-auth/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/send-approval-email-auth/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/send-approval-email-auth/*.html" ]
