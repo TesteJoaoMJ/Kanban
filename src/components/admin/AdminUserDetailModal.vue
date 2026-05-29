@@ -206,7 +206,7 @@
                                        :active-color="isDark ? 'primary-lighten-1' : 'primary-darken-1'"
                                        class="mb-1 rounded-md transition-colors"
                                        :class="isDark ? 'hover-bg-grey' : 'hover-bg-grey'"
-                                   >
+                                    >
                                        <template v-slot:prepend>
                                            <v-icon size="18" :color="activePermissionModule === idx ? 'primary' : 'grey'" class="opacity-80">{{ mod.icon }}</v-icon>
                                        </template>
@@ -421,29 +421,9 @@ const updatedPermissionTree = computed(() => {
                     { value: 'mfg_launches', label: 'Painel de Lançamentos', tables: [] },
                     { value: 'mfg_control', label: 'Acesso Geral ao PCP', tables: [] },
 
-                    { 
-                        value: 'mfg_colecao', 
-                        label: 'Acesso à Tela: Kanban Coleção', 
-                        tables: [],
-                        actions: [
-                            { value: 'mfg_colecao_cadastrar', label: 'Cadastrar nova coleção' },
-                            { value: 'mfg_colecao_editar', label: 'Editar dados do card' },
-                            { value: 'mfg_colecao_arrastar', label: 'Mover cards de coluna' },
-                            { value: 'mfg_colecao_excluir', label: 'Excluir cards' }
-                        ]
-                    },
-                    { 
-                        value: 'mfg_producao', 
-                        label: 'Acesso à Tela: Kanban Produção', 
-                        tables: [],
-                        actions: [
-                            { value: 'mfg_producao_cadastrar', label: 'Cadastrar nova produção' },
-                            { value: 'mfg_producao_editar', label: 'Editar dados do card' },
-                            { value: 'mfg_producao_arrastar', label: 'Mover cards de coluna' },
-                            { value: 'mfg_producao_excluir', label: 'Excluir cards' }
-                        ]
-                    },
+                    { value: 'mfg_colecao', label: 'Kanban Coleção', tables: [] },
 
+                    { value: 'mfg_producao', label: 'Kanban Produção', tables: [] },
                     { value: 'mfg_printing', label: 'Estação de Impressão (Módulo Solo)', tables: [] },
                     { value: 'mfg_release', label: 'Liberação e Qualidade', tables: [] },
                     { value: 'mfg_in_production', label: 'Rastreio Em Produção', tables: [] }
@@ -456,6 +436,18 @@ const updatedPermissionTree = computed(() => {
                     { value: 'pcp_tab_calandra', label: 'Aba: Calandra', tables: [] },
                     { value: 'pcp_tab_faturamento', label: 'Aba: Faturamento', tables: [] },
                     { value: 'pcp_tab_liberacao', label: 'Aba: Expedição', tables: [] }
+                ]},
+                { name: 'Kanban Coleção', items: [
+                    { value: 'mfg_colecao_arrastar', label: 'Arrastar card em coleção', tables: [] },
+                    { value: 'mfg_colecao_editar', label: 'Editar card em coleção', tables: [] },
+                    { value: 'mfg_colecao_excluir', label: 'Excluir card em coleção', tables: [] },
+                    { value: 'mfg_colecao_cadastrar', label: 'Cadastrar card em coleção', tables: [] },
+                ]},
+                { name: 'Kanban Produção', items: [
+                    { value: 'mfg_producao_arrastar', label: 'Arrastar card em produção', tables: [] },
+                    { value: 'mfg_producao_editar', label: 'Editar card em produção', tables: [] },
+                    { value: 'mfg_producao_excluir', label: 'Excluir card em produção', tables: [] },
+                    { value: 'mfg_producao_cadastrar', label: 'Cadastrar card em produção', tables: [] },
                 ]}
             ]
         },

@@ -22,7 +22,7 @@
 
         <div class="d-flex align-center flex-wrap" style="gap: 10px; justify-content: end;">
 
-          <v-btn :color="themeStore.currentMode === 'light' ? 'grey-darken-3' : 'white'" variant="outlined" v-if="userStore.profile.permissions.includes('mfg_producao_cadastrar')"
+          <v-btn :color="themeStore.currentMode === 'light' ? 'grey-darken-3' : 'white'" variant="outlined" v-if="checkPermission('mfg_producao_cadastrar')"
             class="btn-3d px-4 font-weight-bold text-caption text-uppercase" height="40" append-icon="mdi-plus"
             @click="abrirModalCadastro">
             Produção
@@ -129,7 +129,7 @@
 
           <v-btn :color="themeStore.currentMode === 'light' ? 'grey-darken-3' : 'white'" variant="outlined"
             class="btn-3d px-4 font-weight-bold text-caption text-uppercase" height="40"
-            @click="mostrarModalFeed = true">
+            @click="mostrarModalFeed = true" append-icon="mdi mdi-calendar-blank-multiple">
             Histórico
             <v-tooltip activator="parent" location="top">Ver histórico de etapas</v-tooltip>
           </v-btn>
@@ -182,9 +182,9 @@
 
           <div class="column-content">
             <v-card v-for="peca in coluna.pecas" :key="peca.id" class="mb-3 transition-swing"
-              :class="{ 'is-draggable': userStore.profile.permissions.includes('mfg_producao_arrastar'), 'hover-elevate': userStore.profile.permissions.includes('mfg_producao_arrastar') }"
+              :class="{ 'is-draggable': checkPermission('mfg_producao_arrastar'), 'hover-elevate': checkPermission('mfg_producao_arrastar') }"
               :style="{ borderLeft: getStatusPrazo(peca)?.pulsa ? '4px solid rgb(var(--v-theme-error))' : `4px solid ${coluna.cor}` }"
-              :draggable="userStore.profile.permissions.includes('mfg_producao_arrastar')" @dragstart="onDragStart($event, peca, coluna.id)"
+              :draggable="checkPermission('mfg_producao_arrastar')" @dragstart="onDragStart($event, peca, coluna.id)"
               @click="peca.expanded = !peca.expanded" hover>
               <v-card-item class="pb-2 pt-3 px-3">
                 <div class="d-flex justify-space-between align-start mb-2">
@@ -193,7 +193,7 @@
                     <span>{{ getTempoDecorrido(peca) }}</span>
                   </div>
 
-                  <div v-if="userStore.profile.permissions.includes('mfg_producao_arrastar')" class="d-flex gap-1 align-center">
+                  <div v-if="checkPermission('mfg_colecao_arrastar')" class="d-flex gap-1 align-center">
                     <v-menu location="bottom end">
                       <template v-slot:activator="{ props }">
                         <v-btn 
@@ -219,6 +219,16 @@
                         </v-list-item>
                       </v-list>
                     </v-menu>
+
+                    <v-btn icon size="x-small" variant="text" color="medium-emphasis" v-if="checkPermission('mfg_colecao_editar')"
+                      @click.stop="abrirModalEdicao(peca)">
+                      <v-icon>mdi-pencil-outline</v-icon>
+                      <v-tooltip activator="parent" location="top">Editar modelo</v-tooltip>
+                    </v-btn>
+                    <v-btn icon size="x-small" variant="text" color="error" @click.stop="removeritem(peca)" v-if="checkPermission('mfg_colecao_excluir')">
+                      <v-icon>mdi-trash-can-outline</v-icon>
+                      <v-tooltip activator="parent" location="top">Excluir modelo</v-tooltip>
+                    </v-btn>
                   </div>
                 </div>
 
@@ -456,6 +466,21 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="exibirModalExclusao" max-width="450" persistent>
+      <v-card :theme="themeStore?.currentMode">
+        <v-card-title class="text-error font-weight-bold"><v-icon left color="error">mdi-alert</v-icon> Deseja excluir a
+          coleção?</v-card-title>
+        <v-card-text>Você está prestes a excluir: <strong>{{ pecaEmExclusaoNome }}</strong>.<br>Essa ação não terá
+          volta.</v-card-text>
+        <v-card-actions class="pa-4">
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="exibirModalExclusao = false" :disabled="salvando">Cancelar</v-btn>
+          <v-btn color="error" variant="flat" @click="ExcluirItem" :loading="salvando">Excluir</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
 
     <v-dialog v-model="exibirModalCadastro" max-width="600" persistent>
       <v-card :theme="themeStore?.currentMode">
@@ -698,6 +723,12 @@ const themeStore = useThemeStore()
 const userStore = useUserStore();
 const companyStore = useCompanyStore();
 
+const checkPermission = (permissionCode: string) => {
+  if (userStore.profile?.permissions?.custom_role_id?.length === 0) return false;
+  const perms = userStore.profile?.permissions || [];
+  return perms.includes(permissionCode);
+};
+
 interface Peca {
   id: string
   created_at?: string
@@ -921,7 +952,7 @@ const buscarProdutosAutocomplete = async (val?: any) => {
       let query = supabase
         .from('stock')
         .select('id, fabric_type, base_price')
-        .eq('target_tab', 'production')
+        .eq('target_tab', 'cajuia')
         .order('fabric_type')
         .limit(50);
 
@@ -1008,11 +1039,14 @@ const kpisVisiveis = reactive<Record<string, boolean>>({ secaoGeral: true, total
 const termoBusca = ref('')
 const dataBusca = ref('')
 const filtro = ref<string>('todos')
-
+const exibirModalExclusao = ref(false)
 const exibirModalCadastro = ref(false)
 const dialogMover = ref(false)
 const modoEdicao = ref(false)
+
 const pecaEmEdicaoId = ref<string | null>(null)
+const pecaEmExclusaoId = ref<string | null>(null)
+const pecaEmExclusaoNome = ref<string | null>(null)
 
 const colunas = reactive<Coluna[]>([
   { id: 'producao', titulo: 'Pedido de estampa', cor: '#3b82f6', pecas: [], sequencia: '1' },
@@ -1167,6 +1201,43 @@ const abrirModalCadastro = () => {
   produtoSearchTerm.value = ''; produtosFiltrados.value = []
   buscarProdutosAutocomplete('');
   exibirModalCadastro.value = true
+}
+
+const abrirModalEdicao = async (peca: Peca) => {
+  modoEdicao.value = true; pecaEmEdicaoId.value = peca.id
+  Object.assign(novaPeca, {
+    nome: peca.nome || '', quantidade: peca.quantidade ?? '', data_entrega: peca.data_entrega || '',
+    tecido_id: peca.tecido_id ?? '', estampa_id: peca.estampa_id ?? '', descricao: peca.descricao || '', produto: '',
+    produto_nome: peca.produto_nome || '', produto_preco: peca.precoUni || '', tecido_nome: peca.tecido_nome || '', estampa_nome: peca.estampa_nome || ''
+  })
+  produtoSearchTerm.value = ''
+  buscarProdutosAutocomplete('');
+
+  if (peca.produto_id) {
+    const { data: produtos } = await supabase.from('stock').select('id, fabric_type, base_price').order('fabric_type').eq('target_tab', 'ready_delivery')
+    if (produtos) {
+      produtosFiltrados.value = produtos
+      novaPeca.produto = produtos.find(p => p.id === peca.produto_id) || null
+    }
+  }
+  exibirModalCadastro.value = true
+}
+
+const removeritem = (peca: Peca) => { pecaEmExclusaoId.value = peca.id; pecaEmExclusaoNome.value = peca.nome; exibirModalExclusao.value = true }
+
+const ExcluirItem = async () => {
+  if (!pecaEmExclusaoId.value) return
+  salvando.value = true
+  try {
+    const { error } = await supabase.from('kanban_colecao').delete().eq('id', pecaEmExclusaoId.value)
+    if (error) throw error
+    todasPecas.value = todasPecas.value.filter(p => p.id !== pecaEmExclusaoId.value)
+    organizarColunas(); exibirModalExclusao.value = false
+    appStore.showSnackbar('Coleção excluída com sucesso.', 'success');
+  } catch (error: any) { 
+    appStore.showSnackbar(`Não foi possível excluir a coleção. Detalhe: ${error?.message || error?.details}`, 'error') 
+  }
+  finally { salvando.value = false }
 }
 
 const salvarproducao = async () => {

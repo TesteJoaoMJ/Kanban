@@ -127,7 +127,7 @@
 
           <v-btn :color="themeStore.currentMode === 'light' ? 'grey-darken-3' : 'white'" variant="outlined"
             class="btn-3d px-4 font-weight-bold text-caption text-uppercase" height="40"
-            @click="mostrarModalFeed = true">
+            @click="mostrarModalFeed = true" append-icon="mdi mdi-calendar-blank-multiple">
             Histórico
             <v-tooltip activator="parent" location="top">Ver histórico de etapas</v-tooltip>
           </v-btn>
@@ -314,15 +314,16 @@
                 <v-list-item v-for="peca in pecasFiltradasTimeline" :key="peca.id"
                   @click="selecionarPecaParaHistorico(peca)" class="rounded-lg mb-1" link>
                   <template v-slot:title>
-                    <span class="font-weight-bold">{{ peca.nome }}</span>
+                    <span class="font-weight-bold" v-if="peca.status === 'finalizado'">{{ peca.nome }} - {{ peca.autor }}</span>
+                    <span class="font-weight-bold" v-else>{{ peca.nome }}</span>
                   </template>
 
                   <template v-slot:subtitle>
                     <div class="d-flex align-center gap-2 mt-1">
                       <span class="d-flex align-center"><v-icon size="x-small" class="mr-1">mdi-package-variant</v-icon>
                         {{ peca.quantidade || 0 }} un.</span>
-                      <span class="d-flex align-center" v-if="peca.data_entrega"><v-icon size="x-small"
-                          class="mr-1">mdi-calendar-clock</v-icon> {{ formatarData(peca.data_entrega) }}</span>
+                      <span class="d-flex align-center"><v-icon size="x-small"
+                          class="mr-1">mdi-calendar-clock</v-icon> {{ formatarData(peca.data_entrega) }} </span>
                     </div>
                   </template>
 
@@ -389,7 +390,7 @@
 
                     <v-chip v-if="!etapa.dataSaida && etapa.status === 'finalizado'" size="x-small" color="success"
                       variant="flat" class="ml-3 mt-3">
-                      Aprovado (Na Produção)
+                      Aprovado (Em Produção)
                     </v-chip>
 
                     <v-card-title class="text-subtitle-2 pt-3 pb-1 d-flex align-center justify-space-between">
@@ -771,7 +772,7 @@ const buscarProdutosAutocomplete = async (val?: any) => {
       let query = supabase
         .from('stock')
         .select('id, fabric_type, base_price')
-        .eq('target_tab', 'production')
+        .eq('target_tab', 'cajuia')
         .order('fabric_type')
         .limit(50);
 
