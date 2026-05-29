@@ -904,11 +904,11 @@ let timeoutBusca: any = null
 
 const buscarListasAuxiliares = async () => {
   try {
-    const { data: tecidos } = await supabase.from('stock').select('id, fabric_type').order('fabric_type').eq('target_tab', 'production')
+    const { data: tecidos } = await supabase.from('stock').select('id, fabric_type').order('fabric_type').eq('target_tab', 'tab_2kc7pi').eq('visible_in_sales', true)
     if (tecidos) listaTecidos.value = tecidos
     const { data: estampas } = await supabase.from('catalog_stamps').select('id, title').order('title')
     if (estampas) listaEstampas.value = estampas
-  } catch (error) { console.error('Erro ao buscar tecidos/estampas:', error) }
+  } catch (error) { console.error(error) }
 }
 
 const buscarProdutosAutocomplete = async (val?: any) => {
@@ -921,7 +921,7 @@ const buscarProdutosAutocomplete = async (val?: any) => {
       let query = supabase
         .from('stock')
         .select('id, fabric_type, base_price')
-        .eq('target_tab', 'ready_delivery')
+        .eq('target_tab', 'production')
         .order('fabric_type')
         .limit(50);
 

@@ -771,7 +771,7 @@ const buscarProdutosAutocomplete = async (val?: any) => {
       let query = supabase
         .from('stock')
         .select('id, fabric_type, base_price')
-        .eq('target_tab', 'ready_delivery')
+        .eq('target_tab', 'production')
         .order('fabric_type')
         .limit(50);
 
