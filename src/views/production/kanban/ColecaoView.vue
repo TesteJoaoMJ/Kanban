@@ -22,7 +22,7 @@
 
         <div class="d-flex align-center flex-wrap" style="gap: 10px;">
 
-          <v-btn :color="themeStore.currentMode === 'light' ? 'grey-darken-3' : 'white'" variant="outlined" v-if="userStore.profile.permissions.includes('mfg_colecao_cadastrar')"
+          <v-btn :color="themeStore.currentMode === 'light' ? 'grey-darken-3' : 'white'" variant="outlined" v-if="checkPermission('mfg_colecao_cadastrar')"
             class="btn-3d px-4 font-weight-bold text-caption text-uppercase" height="40" append-icon="mdi-plus"
             @click="abrirModalCadastro">
             Coleção
@@ -180,9 +180,9 @@
 
           <div class="column-content">
             <v-card v-for="peca in coluna.pecas" :key="peca.id" class="mb-3 transition-swing"
-              :class="{ 'is-draggable': userStore.profile.permissions.includes('mfg_colecao_arrastar'), 'hover-elevate': userStore.profile.permissions.includes('mfg_colecao_arrastar') }"
+              :class="{ 'is-draggable': checkPermission('mfg_colecao_arrastar'), 'hover-elevate': checkPermission('mfg_colecao_arrastar') }"
               :style="{ borderLeft: getStatusPrazo(peca)?.pulsa ? '4px solid rgb(var(--v-theme-error))' : `4px solid ${coluna.cor}` }"
-              :draggable="userStore.profile.permissions.includes('mfg_colecao_arrastar')" @dragstart="onDragStart($event, peca, coluna.id)"
+              :draggable="checkPermission('mfg_colecao_arrastar')" @dragstart="onDragStart($event, peca, coluna.id)"
               @click="peca.expanded = !peca.expanded" hover>
               <v-card-item class="pb-2 pt-3 px-3">
                 <div class="d-flex justify-space-between align-start mb-2">
@@ -191,7 +191,7 @@
                     <span>{{ getTempoDecorrido(peca.created_at) }}</span>
                   </div>
 
-                  <div v-if="userStore.profile.permissions.includes('mfg_colecao_arrastar')" class="d-flex gap-1 align-center">
+                  <div v-if="checkPermission('mfg_colecao_arrastar')" class="d-flex gap-1 align-center">
                     <v-menu location="bottom end">
                       <template v-slot:activator="{ props }">
                         <v-btn 
@@ -218,12 +218,12 @@
                       </v-list>
                     </v-menu>
 
-                    <v-btn icon size="x-small" variant="text" color="medium-emphasis" v-if="userStore.profile.permissions.includes('mfg_colecao_editar')"
+                    <v-btn icon size="x-small" variant="text" color="medium-emphasis" v-if="checkPermission('mfg_colecao_editar')"
                       @click.stop="abrirModalEdicao(peca)">
                       <v-icon>mdi-pencil-outline</v-icon>
                       <v-tooltip activator="parent" location="top">Editar modelo</v-tooltip>
                     </v-btn>
-                    <v-btn icon size="x-small" variant="text" color="error" @click.stop="removeritem(peca)" v-if="userStore.profile.permissions.includes('mfg_colecao_excluir')">
+                    <v-btn icon size="x-small" variant="text" color="error" @click.stop="removeritem(peca)" v-if="checkPermission('mfg_colecao_excluir')">
                       <v-icon>mdi-trash-can-outline</v-icon>
                       <v-tooltip activator="parent" location="top">Excluir modelo</v-tooltip>
                     </v-btn>
@@ -250,7 +250,7 @@
                     formatarPecaEquivalente(peca.produto_nome ) }}</div>
                 </div>
 
-                <div v-if="userStore.profile.permissions.includes('mfg_colecao_cadastrar') && coluna.id === 'pilotagem'" class="mt-2">
+                <div v-if="checkPermission('mfg_colecao_cadastrar') && coluna.id === 'pilotagem'" class="mt-2">
                   <v-btn block size="small" variant="tonal" color="primary" @click.stop="abrirModalProducao(peca)">
                     Enviar para produção
                   </v-btn>
@@ -533,6 +533,12 @@ const companyStore = useCompanyStore();
 
 const tenantStore = computed(() => userStore.adminSelectedStore);
 
+const checkPermission = (permissionCode: string) => {
+  if (userStore.profile?.permissions?.custom_role_id?.length === 0) return false;
+  const perms = userStore.profile?.permissions || [];
+  return perms.includes(permissionCode);
+};
+
 interface Peca {
   id: string
   created_at?: string
@@ -718,13 +724,12 @@ const etapasVisiveis = computed(() => {
 });
 
 const buscarListasAuxiliares = async () => {
-  console.log(userStore.profile)
   try {
     const { data: tecidos } = await supabase.from('stock').select('id, fabric_type').order('fabric_type').eq('target_tab', 'tab_2kc7pi').eq('visible_in_sales', true)
     if (tecidos) listaTecidos.value = tecidos
     const { data: estampas } = await supabase.from('catalog_stamps').select('id, title').order('title')
     if (estampas) listaEstampas.value = estampas
-  } catch (error) { console.error('Erro ao buscar tecidos/estampas:', error) }
+  } catch (error) { console.error(error) }
 }
 
 const carregarConfiguracoes = async () => {
@@ -732,7 +737,7 @@ const carregarConfiguracoes = async () => {
   if (!userId) return
   try {
     const { data, error } = await supabase.from('kanban_colecao_configuracoes').select('*').eq('perfil_id', userId).maybeSingle()
-    if (error) { console.error('Erro ao consultar configurações:', error); return }
+    if (error) { return }
 
     if (data) {
       kpisVisiveis.secaoGeral = data.kpi_secao_geral !== 0
@@ -749,7 +754,7 @@ const carregarConfiguracoes = async () => {
     } else {
       await salvarConfiguracoes()
     }
-  } catch (err) { console.error('Falha de inicialização nas preferências do Kanban:', err) }
+  } catch (err) { console.error(err) }
 }
 
 const dataDeHoje = computed(() => {
@@ -778,7 +783,7 @@ const buscarProdutosAutocomplete = async (val?: any) => {
       if (error) throw error;
       if (data) produtosFiltrados.value = data;
     } catch (error) {
-      console.error('Erro na busca de produtos:', error);
+      console.error(error);
     }
   }, 300)
 }
@@ -795,7 +800,7 @@ const salvarConfiguracoes = async () => {
     cor_tabela_desenvolvimento_modelo: colunas[0].cor, cor_tabela_desenvolvimento_estampa: colunas[1].cor, cor_tabela_pilotagem: colunas[2].cor
   }
   try { await supabase.from('kanban_colecao_configuracoes').upsert(payload, { onConflict: 'perfil_id' }) }
-  catch (err) { console.error('Erro ao persistir preferências do utilizador:', err) }
+  catch (err) { console.error(err) }
 }
 
 const totalModelos = computed(() => { return colunas.reduce((acc, coluna) => acc + coluna.pecas.length, 0) })
@@ -862,7 +867,7 @@ const buscarColecoes = async () => {
     if (error) throw error
     todasPecas.value = (data || []).map(item => ({ ...item, expanded: false }))
     organizarColunas()
-  } catch (error) { console.error('Erro ao buscar coleções:', error) }
+  } catch (error) { console.error(error) }
   finally { carregando.value = false }
 }
 
@@ -989,7 +994,7 @@ const colunaOrigemId = ref<string>(''); const colunaDestino = ref<string>(''); c
 const pecaArrastada = ref<Peca | null>(null); const origemArrastoId = ref<string>('')
 
 const onDragStart = (event: DragEvent, peca: Peca, origemId: string) => { 
-  if (!userStore.profile.permissions.includes('mfg_colecao_arrastar')) return; 
+  if (!checkPermission('mfg_colecao_arrastar')) return; 
   pecaArrastada.value = peca; 
   origemArrastoId.value = origemId 
 }
@@ -1001,16 +1006,13 @@ const prepararMovimentacao = (peca: Peca, origemId: string, destinoId: string) =
   dialogMover.value = true;
 }
 
-// --- DRAG AND DROP AJUSTADO ---
 const onDrop = (event: DragEvent, destinoId: string) => {
   if (!pecaArrastada.value || origemArrastoId.value === destinoId) return
   
-  // Resgata variáveis e limpa a referência do mouse
   const peca = pecaArrastada.value
   const origemId = origemArrastoId.value
   pecaArrastada.value = null
 
-  // Envia para a função auxiliar
   prepararMovimentacao(peca, origemId, destinoId)
 }
 
@@ -1089,7 +1091,6 @@ const confirmarEnvioProducao = async () => {
     fecharModalProducao()
 
   } catch (error: any) {
-    console.error("ERRO COMPLETO:", error)
     appStore.showSnackbar(`Não foi possível enviar o modelo para a produção. Detalhe: ${error?.message || error?.details || 'Erro desconhecido'}`, 'error')
   } finally {
     salvando.value = false
@@ -1149,7 +1150,6 @@ const getTituloColuna = (id: string) => colunas.find(c => c.id === id)?.titulo |
   cursor: grabbing;
 }
 
-/* Estilos da secção de KPIs */
 .kpi-card {
   color: white !important;
   position: relative;
@@ -1190,7 +1190,6 @@ const getTituloColuna = (id: string) => colunas.find(c => c.id === id)?.titulo |
   font-weight: 700;
 }
 
-/* Cores e Degradês */
 .bg-gradient-info {
   background: linear-gradient(135deg, #0288d1, #005b9f) !important;
 }
@@ -1244,12 +1243,12 @@ const getTituloColuna = (id: string) => colunas.find(c => c.id === id)?.titulo |
 
 @media (max-width: 960px) {
   .kanban-container {
-    overflow-x: auto; /* Ativa o scroll horizontal de colunas no mobile */
-    padding-bottom: 20px; /* Evita que a barra corte os cards */
+    overflow-x: auto;
+    padding-bottom: 20px;
   }
   
   .kanban-column {
-    flex: 0 0 85vw; /* Deixa uma "beirada" da próxima coluna aparecendo */
+    flex: 0 0 85vw;
     min-width: 85vw;
   }
 }

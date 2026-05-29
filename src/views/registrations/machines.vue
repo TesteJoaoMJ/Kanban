@@ -265,6 +265,9 @@ const fetchMachines = async () => {
 
 // Computed Properties (Search, KPIs & Layout)
 const hasActionPermission = computed(() => {
+  if (userStore.profile?.permissions?.custom_role_id?.length === 0) {
+    return false;
+  }
   const perms = userStore.profile?.permissions || [];
   return perms.includes('mfg_maquinas_editar') || perms.includes('mfg_maquinas_excluir');
 });

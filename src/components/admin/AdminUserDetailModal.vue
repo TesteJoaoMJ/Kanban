@@ -421,17 +421,28 @@ const updatedPermissionTree = computed(() => {
                     { value: 'mfg_launches', label: 'Painel de Lançamentos', tables: [] },
                     { value: 'mfg_control', label: 'Acesso Geral ao PCP', tables: [] },
 
-                    { value: 'mfg_colecao', label: 'Kanban Coleção', tables: [] },
-                    { value: 'mfg_colecao_arrastar', label: 'Arrastar card em coleção', tables: [] },
-                    { value: 'mfg_colecao_editar', label: 'Editar card em coleção', tables: [] },
-                    { value: 'mfg_colecao_excluir', label: 'Excluir card em coleção', tables: [] },
-                    { value: 'mfg_colecao_cadastrar', label: 'Cadastrar card em coleção', tables: [] },
-
-                    { value: 'mfg_producao', label: 'Kanban Produção', tables: [] },
-                    { value: 'mfg_producao_arrastar', label: 'Arrastar card em produção', tables: [] },
-                    { value: 'mfg_producao_editar', label: 'Editar card em produção', tables: [] },
-                    { value: 'mfg_producao_excluir', label: 'Excluir card em produção', tables: [] },
-                    { value: 'mfg_producao_cadastrar', label: 'Cadastrar card em produção', tables: [] },
+                    { 
+                        value: 'mfg_colecao', 
+                        label: 'Acesso à Tela: Kanban Coleção', 
+                        tables: [],
+                        actions: [
+                            { value: 'mfg_colecao_cadastrar', label: 'Cadastrar nova coleção' },
+                            { value: 'mfg_colecao_editar', label: 'Editar dados do card' },
+                            { value: 'mfg_colecao_arrastar', label: 'Mover cards de coluna' },
+                            { value: 'mfg_colecao_excluir', label: 'Excluir cards' }
+                        ]
+                    },
+                    { 
+                        value: 'mfg_producao', 
+                        label: 'Acesso à Tela: Kanban Produção', 
+                        tables: [],
+                        actions: [
+                            { value: 'mfg_producao_cadastrar', label: 'Cadastrar nova produção' },
+                            { value: 'mfg_producao_editar', label: 'Editar dados do card' },
+                            { value: 'mfg_producao_arrastar', label: 'Mover cards de coluna' },
+                            { value: 'mfg_producao_excluir', label: 'Excluir cards' }
+                        ]
+                    },
 
                     { value: 'mfg_printing', label: 'Estação de Impressão (Módulo Solo)', tables: [] },
                     { value: 'mfg_release', label: 'Liberação e Qualidade', tables: [] },
