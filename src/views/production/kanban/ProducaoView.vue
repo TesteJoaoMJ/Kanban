@@ -3258,6 +3258,24 @@ const baixarPDF = async (historicoId: string) => {
   URL.revokeObjectURL(blobUrl);
 };
 
+const getBase64FromUrl = async (url: string) => {
+  if (!url) return '';
+  try {
+    const response = await fetch(url, { mode: 'cors' });
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = () => {
+        resolve(reader.result);
+      };
+    });
+  } catch (e) {
+    console.error('Erro ao converter logo para base64:', e);
+    return url; // Fallback para a URL original em caso de erro
+  }
+};
+
 const gerarPDFOrdemServico = async (
   peca: Peca,
   etapaAvulsa?: string,
@@ -3265,20 +3283,18 @@ const gerarPDFOrdemServico = async (
   colunaIdDestino?: string,
 ) => {
   const dataHoje = new Date().toLocaleDateString("pt-BR");
-  const horaHoje = new Date().toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const etapa =
-    typeof etapaAvulsa === "string"
-      ? etapaAvulsa
-      : getTituloColuna(peca.status || "");
+  const horaHoje = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const etapa = typeof etapaAvulsa === "string" ? etapaAvulsa : getTituloColuna(peca.status || "");
   const qtd = extrasAvulsos?.quantidadeMove || peca.quantidade || 0;
   const valorTotal = extrasAvulsos?.valor_servico || peca.valor_servico || 0;
   const vlrUnitario = valorTotal > 0 ? (valorTotal / qtd).toFixed(2) : "0.00";
-  const numeroOS = peca.id
-    ? peca.id.substring(0, 8).toUpperCase()
-    : Math.floor(Math.random() * 1000000);
+  const numeroOS = peca.id ? peca.id.substring(0, 8).toUpperCase() : Math.floor(Math.random() * 1000000);
+
+  // CONVERTE A LOGO PARA BASE64 PARA NÃO SUMIR NO PDF
+  const logoUrl = companyStore.currentCompany?.logo_url || companyStore.currentCompanyLogo || '';
+  const logoBase64 = await getBase64FromUrl(logoUrl);
+  const logoHtml = logoBase64 ? `<img src="${logoBase64}" alt="Logo da Empresa">` : '';
+
 
   const html = `
     <!DOCTYPE html>
@@ -3291,12 +3307,17 @@ const gerarPDFOrdemServico = async (
         * { box-sizing: border-box; }
         body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #111827; margin: 0; padding: 0; line-height: 1.5; }
         .container { width: 100%; max-width: 190mm; margin: 0 auto; }
+        
+        /* ATUALIZAÇÃO DO CABEÇALHO PARA 3 COLUNAS */
         .header { display: flex; width: 100%; border: 2px solid #111827; border-radius: 6px; margin-bottom: 20px; overflow: hidden; }
-        .header-title { width: 80%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; }
-        .header-title h1 { margin: 0; font-size: 20px; text-transform: uppercase; letter-spacing: 1px; color: #111827; }
-        .header-title p { margin: 5px 0 0 0; font-size: 14px; font-weight: 600; color: #4b5563; }
+        .header-logo { width: 25%; display: flex; justify-content: center; align-items: center; padding: 10px; border-right: 1px solid #111827; background-color: #fff; }
+        .header-logo img { max-width: 100%; max-height: 65px; object-fit: contain; }
+        .header-title { width: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; }
+        .header-title h1 { margin: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; color: #111827; text-align: center; }
+        .header-title p { margin: 5px 0 0 0; font-size: 13px; font-weight: 600; color: #4b5563; }
         .header-info { width: 25%; border-left: 1px solid #111827; background-color: #f9fafb; padding: 10px; font-size: 12px; }
-        .header-info strong { display: inline-block; width: 60px; }
+        .header-info strong { display: inline-block; width: 65px; }
+        
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border-radius: 6px; }
         th, td { border: 1px solid #d1d5db; padding: 8px 12px; text-align: left; }
         th { background-color: #f3f4f6; font-size: 12px; text-transform: uppercase; color: #374151; font-weight: 700; width: 25%; }
@@ -3320,6 +3341,9 @@ const gerarPDFOrdemServico = async (
     <body>
       <div class="container">
         <div class="header">
+          <div class="header-logo">
+             ${logoHtml}
+          </div>
           <div class="header-title">
             <h1>Ordem de Serviço</h1>
             <p>SERVIÇO EXTERNO</p>
@@ -3375,31 +3399,20 @@ const gerarPDFOrdemServico = async (
   `;
 
   const element = document.createElement("div");
-
   element.innerHTML = html;
-
   document.body.appendChild(element);
 
   const opt = {
     margin: 0,
     filename: `guia.pdf`,
     image: { type: "jpeg", quality: 1 },
-    html2canvas: {
-      scale: 2,
-    },
-    jsPDF: {
-      unit: "mm",
-      format: "a4",
-      orientation: "portrait",
-    },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
   };
 
-  // GERA BLOB PDF
   const pdfBlob = await html2pdf().set(opt).from(element).outputPdf("blob");
-
   document.body.removeChild(element);
 
-  // Dispara o download local nativamente para não passar em branco para o usuário
   const blobUrlLocal = URL.createObjectURL(pdfBlob);
   const linkLocal = document.createElement("a");
   linkLocal.href = blobUrlLocal;
@@ -3409,7 +3422,6 @@ const gerarPDFOrdemServico = async (
   linkLocal.remove();
   URL.revokeObjectURL(blobUrlLocal);
 
-  // Faz o upload pro bucket
   const nomeArquivo = `Comprovante_servico_externo/${peca.id}_${Date.now()}.pdf`;
 
   const { error } = await supabase.storage
@@ -3424,14 +3436,9 @@ const gerarPDFOrdemServico = async (
     return;
   }
 
-  // URL pública
-  const { data } = supabase.storage
-    .from("comprovanteProducao")
-    .getPublicUrl(nomeArquivo);
-
+  const { data } = supabase.storage.from("comprovanteProducao").getPublicUrl(nomeArquivo);
   const urlPDF = data.publicUrl;
 
-  // salva no banco da etapa correspondente (não mais "PDV" travado)
   let queryHistorico = supabase
     .from("kanban_producao_historico")
     .update({
@@ -3453,18 +3460,17 @@ const gerarPDFEnvioLoja = async (
   lojaNome: string,
 ) => {
   const dataHoje = new Date().toLocaleDateString("pt-BR");
+  const horaHoje = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const etapa = typeof etapaAvulsa === "string" ? etapaAvulsa : getTituloColuna(peca.status || "");
+  const qtd = extrasAvulsos?.quantidadeMove || peca.quantidade || 0;
+  const valorTotal = extrasAvulsos?.valor_servico || peca.valor_servico || 0;
+  const vlrUnitario = valorTotal > 0 ? (valorTotal / qtd).toFixed(2) : "0.00";
+  const numeroOS = peca.id ? peca.id.substring(0, 8).toUpperCase() : Math.floor(Math.random() * 1000000);
 
-  const horaHoje = new Date().toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  const nomeResponsavel =
-    userStore.profile?.username || userStore.profile?.nome || "Usuário Web";
-
-  const numeroGuia = Math.floor(Math.random() * 1000000)
-    .toString()
-    .padStart(6, "0");
+  // CONVERTE A LOGO PARA BASE64 PARA NÃO SUMIR NO PDF
+  const logoUrl = companyStore.currentCompany?.logo_url || companyStore.currentCompanyLogo || '';
+  const logoBase64 = await getBase64FromUrl(logoUrl);
+  const logoHtml = logoBase64 ? `<img src="${logoBase64}" alt="Logo da Empresa">` : '';
 
   const html = `
     <!DOCTYPE html>
@@ -3477,12 +3483,17 @@ const gerarPDFEnvioLoja = async (
         * { box-sizing: border-box; }
         body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #111827; margin: 0; padding: 0; line-height: 1.5; }
         .container { width: 100%; max-width: 190mm; margin: 0 auto; }
+        
+        /* ATUALIZAÇÃO DO CABEÇALHO PARA 3 COLUNAS */
         .header { display: flex; width: 100%; border: 2px solid #111827; border-radius: 6px; margin-bottom: 20px; overflow: hidden; }
-        .header-title { width: 70%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; }
+        .header-logo { width: 25%; display: flex; justify-content: center; align-items: center; padding: 10px; border-right: 1px solid #111827; background-color: #fff; }
+        .header-logo img { max-width: 100%; max-height: 65px; object-fit: contain; }
+        .header-title { width: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; }
         .header-title h1 { margin: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; color: #111827; text-align: center; }
         .header-title p { margin: 5px 0 0 0; font-size: 14px; font-weight: 600; color: #4b5563; }
-        .header-info { width: 30%; border-left: 1px solid #111827; background-color: #f9fafb; padding: 10px; font-size: 12px; }
+        .header-info { width: 25%; border-left: 1px solid #111827; background-color: #f9fafb; padding: 10px; font-size: 12px; }
         .header-info strong { display: inline-block; width: 65px; }
+        
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border-radius: 6px; }
         th, td { border: 1px solid #d1d5db; padding: 8px 12px; text-align: left; }
         th { background-color: #f3f4f6; font-size: 12px; text-transform: uppercase; color: #374151; font-weight: 700; width: 25%; }
@@ -3501,6 +3512,9 @@ const gerarPDFEnvioLoja = async (
     <body>
       <div class="container">
         <div class="header">
+          <div class="header-logo">
+             ${logoHtml}
+          </div>
           <div class="header-title">
             <h1>Guia de Remessa / Transferência</h1>
             <p>MERCADORIA PRONTA PARA VENDA</p>
@@ -3543,26 +3557,17 @@ const gerarPDFEnvioLoja = async (
 
   const element = document.createElement("div");
   element.innerHTML = html;
-
   document.body.appendChild(element);
 
   const opt = {
     margin: 0,
     filename: `guia-${numeroGuia}.pdf`,
     image: { type: "jpeg", quality: 1 },
-    html2canvas: {
-      scale: 2,
-    },
-    jsPDF: {
-      unit: "mm",
-      format: "a4",
-      orientation: "portrait",
-    },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
   };
 
-  // GERA BLOB PDF
   const pdfBlob = await html2pdf().set(opt).from(element).outputPdf("blob");
-
   document.body.removeChild(element);
 
   const nomeArquivo = `Comprovante_Envio_Loja/${peca.id}_${Date.now()}.pdf`;
@@ -3579,14 +3584,9 @@ const gerarPDFEnvioLoja = async (
     return;
   }
 
-  // URL pública
-  const { data } = supabase.storage
-    .from("comprovanteProducao")
-    .getPublicUrl(nomeArquivo);
-
+  const { data } = supabase.storage.from("comprovanteProducao").getPublicUrl(nomeArquivo);
   const urlPDF = data.publicUrl;
 
-  // salva no banco
   const {} = await supabase
     .from("kanban_producao_historico")
     .update({
