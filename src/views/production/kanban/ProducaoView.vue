@@ -220,11 +220,18 @@
                       </v-list>
                     </v-menu>
 
+                    <v-btn icon size="x-small" variant="text" color="green" v-if="!peca.faturado && peca.tipo_externo === 1"
+                      @click.stop="abrirModalPagamento(peca)">
+                      <v-icon>mdi mdi-cash-clock</v-icon>
+                      <v-tooltip activator="parent" location="top">Faturar</v-tooltip>
+                    </v-btn>
+
                     <v-btn icon size="x-small" variant="text" color="medium-emphasis" v-if="checkPermission('mfg_colecao_editar')"
                       @click.stop="abrirModalEdicao(peca)">
                       <v-icon>mdi-pencil-outline</v-icon>
                       <v-tooltip activator="parent" location="top">Editar modelo</v-tooltip>
                     </v-btn>
+
                     <v-btn icon size="x-small" variant="text" color="error" @click.stop="removeritem(peca)" v-if="checkPermission('mfg_colecao_excluir')">
                       <v-icon>mdi-trash-can-outline</v-icon>
                       <v-tooltip activator="parent" location="top">Excluir modelo</v-tooltip>
@@ -306,7 +313,7 @@
             <v-card-text class="pa-0" style="max-height: 55vh;">
               <v-list v-if="pecasFiltradasTimeline.length > 0" lines="two" class="bg-transparent pa-2">
                 <v-list-item v-for="peca in pecasFiltradasTimeline" :key="peca.id"
-                  @click="selecionarPecaParaHistorico(peca)" class="rounded-lg mb-1" link>
+                  @click="abrirHistoricoDetalhado(peca)" class="rounded-lg mb-1" link>
                   <template v-slot:title>
                     <span class="font-weight-bold">{{ peca.nome }}</span>
                   </template>
@@ -321,9 +328,11 @@
                   </template>
 
                   <template v-slot:append>
-                    <v-chip size="small" :color="getColunaCor(peca.status)" variant="flat" class="font-weight-medium">
-                      {{ peca.status === 'estoque' ? 'Finalizado' : getColunaTitulo(peca.status) }}
-                    </v-chip>
+                    <div class="d-flex align-center">
+                      <v-chip size="small" :color="getColunaCor(peca.status)" variant="flat" class="font-weight-medium">
+                        {{ peca.status === 'estoque' ? 'Finalizado' : getColunaTitulo(peca.status) }}
+                      </v-chip>
+                    </div>
                   </template>
                 </v-list-item>
               </v-list>
@@ -335,73 +344,196 @@
               </div>
             </v-card-text>
           </div>
-
-          <div v-else key="timeline">
-            <v-card-title
-              class="d-flex justify-space-between align-center px-3 pt-4 pb-3 bg-grey-lighten-4 dark:bg-grey-darken-4">
-              <div class="d-flex align-center gap-2 overflow-hidden w-100">
-                <v-btn icon="mdi-arrow-left" variant="tonal" size="small" color="primary"
-                  @click="pecaSelecionada = null" class="mr-1"></v-btn>
-                <div class="text-truncate d-flex flex-column">
-                  <div class="text-subtitle-1 font-weight-bold text-truncate lh-normal">{{ pecaSelecionada.nome }}</div>
-                  <div class="text-caption text-medium-emphasis d-flex align-center gap-1">
-                    Fase Atual:
-                    <v-chip size="x-small">
-                      {{ pecaSelecionada.status === 'estoque' ? 'Finalizado' : getColunaTitulo(pecaSelecionada.status) }}
-                    </v-chip>
-                  </div>
-                </div>
-              </div>
-              <v-btn icon="mdi-close" variant="text" density="comfortable" @click="mostrarModalFeed = false"></v-btn>
-            </v-card-title>
-
-            <v-divider></v-divider>
-
-            <v-card-text class="pa-5" style="max-height: 60vh;">
-              <div v-if="carregandoHistorico" class="d-flex flex-column align-center justify-center py-10">
-                <v-progress-circular indeterminate color="primary" size="40"></v-progress-circular>
-                <span class="text-caption mt-3 text-medium-emphasis">Carregando histórico...</span>
-              </div>
-
-              <v-timeline v-else density="compact" side="end" align="start" truncate-line="both">
-                <v-timeline-item v-for="etapa in etapasVisiveis" :key="etapa.id"
-                  :dot-color="etapa.dataSaida ? 'success' : 'primary'"
-                  :icon="etapa.dataSaida ? 'mdi-check' : 'mdi-circle-medium'" size="small"
-                  :elevation="etapa.dataSaida ? 0 : 2">
-                  <v-card :variant="etapa.dataSaida ? 'outlined' : 'elevated'" :elevation="etapa.dataSaida ? 0 : 1"
-                    class="mb-2" :class="{ 'bg-primary-lighten-5 dark:bg-grey-darken-3': !etapa.dataSaida }">
-                    <v-chip v-if="!etapa.dataSaida && !['estoque', 'sistema', 'PDV'].includes(etapa.status)"
-                      size="x-small" color="primary" variant="flat" class="ml-3 mt-3">
-                      Em andamento
-                    </v-chip>
-
-                    <v-chip v-if="!etapa.dataSaida && ['estoque', 'sistema', 'PDV'].includes(etapa.status)"
-                      size="x-small" color="success" variant="flat" class="ml-3 mt-3">
-                      Finalizado
-                    </v-chip>
-
-                    <v-card-title class="text-subtitle-2 pt-3 pb-1 d-flex align-center justify-space-between">
-                      {{ etapa.status === 'estoque' ? 'Finalizado' : etapa.titulo }}
-                      <v-btn icon="mdi-file-pdf-box" size="x-small" variant="text" color="red"
-                        @click.stop="baixarPDF(etapa.id)" title="Baixar PDF" v-if="etapa.status === 'PDV'" />
-                    </v-card-title>
-                    <v-card-text class="text-caption pb-3 pt-1 text-medium-emphasis">
-                      <div class="d-flex align-center gap-2 mb-1">
-                        <v-icon size="small" color="grey">mdi-login</v-icon>
-                        <span><strong>Entrada:</strong> {{ etapa.dataEntrada }}</span>
-                      </div>
-                      <div v-if="etapa.dataSaida" class="d-flex align-center gap-2">
-                        <v-icon size="small" color="success">mdi-logout</v-icon>
-                        <span><strong>Saída:</strong> {{ etapa.dataSaida }}</span>
-                      </div>
-                    </v-card-text>
-                  </v-card>
-                </v-timeline-item>
-              </v-timeline>
-            </v-card-text>
-          </div>
-
         </v-fade-transition>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="exibirModalDetalhesPeca" max-width="900" scrollable>
+      <v-card :theme="themeStore?.currentMode" rounded="lg">
+        <v-card-title class="d-flex justify-space-between align-center px-5 pt-4 pb-3" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-4' : 'bg-grey-darken-4'">
+          <div class="d-flex align-center gap-3">
+             <v-avatar color="primary" variant="tonal" rounded="lg">
+                <v-icon>mdi-factory</v-icon>
+             </v-avatar>
+             <div>
+               <div class="text-h6 font-weight-bold lh-normal">{{ detalhesPecaDB?.nome || pecaSelecionada?.nome }}</div>
+               <div class="text-caption text-medium-emphasis">Dossiê de produção e mapeamento de operadores</div>
+             </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" density="comfortable" @click="exibirModalDetalhesPeca = false; mostrarModalFeed = true"></v-btn>
+        </v-card-title>
+        <v-divider></v-divider>
+
+        <v-card-text class="pa-5 overflow-hidden">
+           <div v-if="carregandoHistorico" class="d-flex flex-column align-center justify-center py-10">
+              <v-progress-circular indeterminate color="primary" size="40"></v-progress-circular>
+              <span class="text-caption mt-3 text-medium-emphasis">Mapeando linha de produção...</span>
+           </div>
+           <v-row v-else dense class="align-stretch">
+              <v-col cols="12" md="6" class="pr-md-2 h-100">
+                 <div class="text-caption font-weight-black text-uppercase mb-2 opacity-70 tracking-widest"><v-icon size="small" class="mr-1">mdi-information-outline</v-icon> Dados do Lote</div>
+                 <v-card variant="outlined" class="pa-4 rounded-lg overflow-y-auto custom-scroll" style="height: 55vh;" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-5 border-grey-lighten-2' : 'bg-grey-darken-4 border-white-05'">
+                    <div class="d-flex flex-column gap-3 text-body-2">
+                       <div class="d-flex justify-space-between align-center border-b pb-2" :class="themeStore?.currentMode === 'light' ? 'border-grey-lighten-3' : 'border-white-05'">
+                          <strong class="opacity-70">Status Atual:</strong>
+                          <v-chip size="small" :color="detalhesPecaDB?.status === 'estoque' ? 'success' : getColunaCor(detalhesPecaDB?.status)" variant="flat" class="font-weight-bold">
+                            {{ detalhesPecaDB?.status === 'estoque' ? 'No Estoque' : getColunaTitulo(detalhesPecaDB?.status) }}
+                          </v-chip>
+                       </div>
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Responsável Inicial:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.autor || 'N/A' }}</span>
+                       </div>
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Previsão de Entrega:</strong> <span class="font-weight-medium"><v-icon size="x-small" class="mr-1">mdi-calendar</v-icon>{{ formatarData(detalhesPecaDB?.data_entrega) }}</span>
+                       </div>
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Total de Peças:</strong> <span class="font-weight-medium">{{ detalhesPecaDB?.quantidade || 0 }} un.</span>
+                       </div>
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Produto Fabricado:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.produto_nome || 'Não vinculado' }}</span>
+                       </div>
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Tecido:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.tecido_nome || detalhesPecaDB?.tecido_id || 'N/A' }}</span>
+                       </div>
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Estampa:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.estampa_nome || detalhesPecaDB?.estampa_id || 'N/A' }}</span>
+                       </div>
+
+                       <v-divider class="my-2" :class="themeStore?.currentMode === 'light' ? 'border-grey-lighten-3' : 'border-white-05'"></v-divider>
+                       <div class="text-caption font-weight-black text-uppercase text-primary tracking-widest mb-1">Informações de Manufatura</div>
+
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Operador Corte:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.tipo_corte === 'interna' ? getNomeOperador(detalhesPecaDB?.operador_corte_id) : (detalhesPecaDB?.tipo_corte ? 'Serviço Externo' : 'N/A') }}</span>
+                       </div>
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Máquina Corte:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.tipo_corte === 'interna' ? getNomeMaquina(detalhesPecaDB?.maquina_corte_id) : (detalhesPecaDB?.tipo_corte ? 'Serviço Externo' : 'N/A') }}</span>
+                       </div>
+
+                       <v-divider class="my-1 border-dashed opacity-20"></v-divider>
+
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Operador Costura:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.tipo_costura === 'interna' ? getNomeOperador(detalhesPecaDB?.operador_costura_id) : (detalhesPecaDB?.tipo_costura ? 'Serviço Externo' : 'N/A') }}</span>
+                       </div>
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Máquina Costura:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.tipo_costura === 'interna' ? getNomeMaquina(detalhesPecaDB?.maquina_costura_id) : (detalhesPecaDB?.tipo_costura ? 'Serviço Externo' : 'N/A') }}</span>
+                       </div>
+
+                       <v-divider class="my-1 border-dashed opacity-20"></v-divider>
+
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Operador Acabamento:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.tipo_acabamento === 'interna' ? getNomeOperador(detalhesPecaDB?.operador_acabamento_id) : (detalhesPecaDB?.tipo_acabamento ? 'Serviço Externo' : 'N/A') }}</span>
+                       </div>
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Máquina Acabamento:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.tipo_acabamento === 'interna' ? getNomeMaquina(detalhesPecaDB?.maquina_acabamento_id) : (detalhesPecaDB?.tipo_acabamento ? 'Serviço Externo' : 'N/A') }}</span>
+                       </div>
+
+                       <v-row dense class="mt-2">
+                          <v-col cols="12" v-if="detalhesPecaDB?.tipo_corte">
+                             <div class="pa-2 rounded border" :class="themeStore?.currentMode === 'light' ? 'bg-white border-grey-lighten-3' : 'bg-grey-darken-3 border-white-05'">
+                                <div class="d-flex align-center gap-2 mb-1">
+                                   <v-icon size="small" color="pink">mdi-scissors-cutting</v-icon>
+                                   <strong class="text-caption text-uppercase">Corte ({{ detalhesPecaDB.tipo_corte }})</strong>
+                                </div>
+                                <div v-if="detalhesPecaDB.tipo_corte === 'interna'" class="text-caption d-flex flex-column gap-1 ml-6">
+                                   <div><span class="opacity-70">Operador:</span> <strong>{{ getNomeOperador(detalhesPecaDB.operador_corte_id) }}</strong></div>
+                                   <div><span class="opacity-70">Máquina:</span> <strong>{{ getNomeMaquina(detalhesPecaDB.maquina_corte_id) }}</strong></div>
+                                </div>
+                             </div>
+                          </v-col>
+
+                          <v-col cols="12" v-if="detalhesPecaDB?.tipo_costura">
+                             <div class="pa-2 rounded border" :class="themeStore?.currentMode === 'light' ? 'bg-white border-grey-lighten-3' : 'bg-grey-darken-3 border-white-05'">
+                                <div class="d-flex align-center gap-2 mb-1">
+                                   <v-icon size="small" color="orange">mdi-needle</v-icon>
+                                   <strong class="text-caption text-uppercase">Costura ({{ detalhesPecaDB.tipo_costura }})</strong>
+                                </div>
+                                <div v-if="detalhesPecaDB.tipo_costura === 'interna'" class="text-caption d-flex flex-column gap-1 ml-6">
+                                   <div><span class="opacity-70">Operador:</span> <strong>{{ getNomeOperador(detalhesPecaDB.operador_costura_id) }}</strong></div>
+                                   <div><span class="opacity-70">Máquina:</span> <strong>{{ getNomeMaquina(detalhesPecaDB.maquina_costura_id) }}</strong></div>
+                                </div>
+                             </div>
+                          </v-col>
+
+                          <v-col cols="12" v-if="detalhesPecaDB?.tipo_acabamento">
+                             <div class="pa-2 rounded border" :class="themeStore?.currentMode === 'light' ? 'bg-white border-grey-lighten-3' : 'bg-grey-darken-3 border-white-05'">
+                                <div class="d-flex align-center gap-2 mb-1">
+                                   <v-icon size="small" color="green">mdi-tshirt-crew</v-icon>
+                                   <strong class="text-caption text-uppercase">Acabamento ({{ detalhesPecaDB.tipo_acabamento }})</strong>
+                                </div>
+                                <div v-if="detalhesPecaDB.tipo_acabamento === 'interna'" class="text-caption d-flex flex-column gap-1 ml-6">
+                                   <div><span class="opacity-70">Operador:</span> <strong>{{ getNomeOperador(detalhesPecaDB.operador_acabamento_id) }}</strong></div>
+                                   <div><span class="opacity-70">Máquina:</span> <strong>{{ getNomeMaquina(detalhesPecaDB.maquina_acabamento_id) }}</strong></div>
+                                </div>
+                             </div>
+                          </v-col>
+                       </v-row>
+
+                       <div v-if="detalhesPecaDB?.descricao" class="mt-2">
+                         <strong class="opacity-70 d-block mb-1 text-caption">Instruções Técnicas da Manufatura:</strong>
+                         <div class="pa-3 rounded border text-caption" :class="themeStore?.currentMode === 'light' ? 'bg-white border-grey-lighten-3' : 'bg-grey-darken-3 border-white-05'">{{ detalhesPecaDB?.descricao }}</div>
+                       </div>
+                    </div>
+                 </v-card>
+              </v-col>
+
+              <v-col cols="12" md="6" class="pl-md-2 mt-4 mt-md-0 h-100">
+                 <div class="text-caption font-weight-black text-uppercase mb-2 opacity-70 tracking-widest"><v-icon size="small" class="mr-1">mdi-timeline-clock-outline</v-icon> Histórico e Tempos</div>
+                 <v-card variant="outlined" class="pa-4 rounded-lg overflow-y-auto custom-scroll" style="height: 55vh;" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-5 border-grey-lighten-2' : 'bg-grey-darken-4 border-white-05'">
+                    <v-timeline density="compact" side="end" align="start" truncate-line="both">
+                      <v-timeline-item v-for="etapa in etapasVisiveis" :key="etapa.id"
+                        :dot-color="etapa.dataSaida ? 'success' : 'primary'"
+                        :icon="etapa.dataSaida ? 'mdi-check' : 'mdi-circle-medium'" size="small">
+                        <div class="mb-3">
+                           <div class="font-weight-bold text-body-2 d-flex align-center justify-space-between">
+                              {{ etapa.titulo }}
+                           </div>
+                           <div class="text-caption text-medium-emphasis mt-1 d-flex flex-column gap-1">
+                             <div class="d-flex align-center"><v-icon size="x-small" class="mr-1">mdi-login</v-icon> Entrada: {{ etapa.dataEntrada }}</div>
+                             <div class="d-flex align-center" v-if="etapa.dataSaida"><v-icon size="x-small" class="mr-1 text-success">mdi-logout</v-icon> Saída: {{ etapa.dataSaida }}</div>
+                           </div>
+                        </div>
+                      </v-timeline-item>
+                    </v-timeline>
+                    <div v-if="etapasVisiveis.length === 0" class="text-caption text-center opacity-60 py-8 d-flex flex-column align-center">
+                        <v-icon size="large" class="mb-2">mdi-history</v-icon>
+                        Nenhum histórico registrado ainda.
+                    </div>
+                 </v-card>
+              </v-col>
+           </v-row>
+        </v-card-text>
+        
+        <v-card-actions class="pa-4 border-t d-flex justify-space-between align-center" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-4' : 'bg-grey-darken-4'">
+           <div></div>
+           
+           <div class="d-flex gap-3 align-center">
+             <v-btn variant="tonal" class="px-5 font-weight-bold text-none" @click="exibirModalDetalhesPeca = false; mostrarModalFeed = true">
+               Voltar
+             </v-btn>
+
+             <v-btn 
+                color="info" 
+                variant="flat" 
+                class="px-5 font-weight-bold text-none" 
+                prepend-icon="mdi-download" 
+                v-if="linkComprovanteExterno" 
+                @click="baixarPDFExternoURL(linkComprovanteExterno)"
+             >
+               Baixar OS
+             </v-btn>
+
+             <v-btn 
+                color="error" 
+                variant="flat" 
+                class="px-5 font-weight-bold text-none" 
+                prepend-icon="mdi-file-pdf-box" 
+                v-if="etapaPDV" 
+                @click="baixarPDF(etapaPDV.id)"
+             >
+               Baixar Comprovante Envio
+             </v-btn>
+           </div>
+        </v-card-actions>
       </v-card>
     </v-dialog>
 
@@ -456,6 +588,18 @@
               <v-text-field v-model="dadosPagamento.data_vencimento" type="date" label="Data de Vencimento"
                 variant="outlined" density="comfortable" />
             </v-col>
+            <v-col cols="12" sm="6">
+               <v-select v-model="dadosPagamento.conta" :items="listaContasBancarias" item-title="bank_name" item-value="id"
+                label="Contas Bancarias *" variant="outlined" density="comfortable" required />
+            </v-col>
+            <v-col cols="12" sm="6">
+               <v-select v-model="dadosPagamento.categoria" :items="listaPlanoContas" item-title="name" item-value="id"
+                label="Plano de contas *" variant="outlined" density="comfortable" required />
+            </v-col>
+            <v-col cols="12">
+               <v-select v-model="dadosPagamento.beneficiario" :items="listaBeneficiarios" item-title="nome" item-value="id"
+                label="Beneficiário *" variant="outlined" density="comfortable" required />
+            </v-col>
           </v-row>
         </v-card-text>
         <v-card-actions class="pa-4">
@@ -480,7 +624,6 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-
 
     <v-dialog v-model="exibirModalCadastro" max-width="600" persistent>
       <v-card :theme="themeStore?.currentMode">
@@ -718,6 +861,8 @@ import { useThemeStore } from '@/stores/theme';
 import { supabase } from '@/api/supabase';
 import { useAppStore } from '@/stores/app';
 
+import html2pdf from 'html2pdf.js';
+
 const appStore = useAppStore();
 const themeStore = useThemeStore()
 const userStore = useUserStore();
@@ -759,6 +904,8 @@ interface Peca {
   descricao_etapa?: string | null
   valor_servico?: number | null
   precoUni?: string | null
+  preco_unitario?: string | null
+  faturado?: number | null
 }
 
 interface Coluna { id: string; titulo: string; cor?: string; pecas: Peca[]; sequencia: string }
@@ -827,17 +974,31 @@ const formatarData = (dataISO: string | null) => {
   return `${partes[2]}/${partes[1]}/${partes[0]}`
 }
 
-// --- LINHA DO TEMPO (FEED) ---
+// --- LINHA DO TEMPO (FEED) E DOSSIÊ DETALHADO ---
 const mostrarModalFeed = ref(false)
 const pecaSelecionada = ref<any | null>(null)
 const historicoDB = ref<any[]>([])
 const carregandoHistorico = ref(false)
 const filtroTimeline = ref('atuais')
 
+// Variáveis para o novo Modal de Detalhes
+const exibirModalDetalhesPeca = ref(false)
+const detalhesPecaDB = ref<any>(null)
+
 const fecharModalTimeline = () => { pecaSelecionada.value = null; historicoDB.value = [] }
 
 const getColunaCor = (statusId: string | null) => colunas.find(c => c.id === statusId)?.cor || 'primary'
 const getColunaTitulo = (statusId: string | null) => colunas.find(c => c.id === statusId)?.titulo || 'Sem Etapa'
+
+const getNomeOperador = (id: string | null | undefined) => {
+  if (!id) return 'Não atribuído'
+  return listaColaboradores.value.find(c => c.id === id)?.nome || 'Desconhecido'
+}
+
+const getNomeMaquina = (id: string | null | undefined) => {
+  if (!id) return 'Não atribuída'
+  return listaMaquinas.value.find(m => m.id === id)?.nome || 'Desconhecida'
+}
 
 const formatarDataHoraTimezone = (dataISO: string) => {
   const d = new Date(dataISO)
@@ -887,13 +1048,31 @@ const pecasFiltradasTimeline = computed(() => {
   })
 })
 
-const selecionarPecaParaHistorico = async (peca: Peca) => {
+const abrirHistoricoDetalhado = async (peca: Peca) => {
   pecaSelecionada.value = peca
   carregandoHistorico.value = true
+  exibirModalDetalhesPeca.value = true 
+  
   try {
-    const { data } = await supabase.from('kanban_producao_historico').select('*').eq('producao_id', peca.id).order('data_entrada', { ascending: true })
-    if (data) historicoDB.value = data
-  } finally { carregandoHistorico.value = false }
+    const { data: historicoData } = await supabase.from('kanban_producao_historico')
+      .select('*').eq('producao_id', peca.id).order('data_entrada', { ascending: true })
+    
+    if (historicoData) historicoDB.value = historicoData
+
+    const { data: pecaData } = await supabase.from('kanban_producao')
+      .select('*').eq('id', peca.id).single()
+      
+    if (pecaData) {
+      detalhesPecaDB.value = pecaData
+    } else {
+      detalhesPecaDB.value = peca 
+    }
+
+  } catch (error) { 
+    console.error(error) 
+  } finally { 
+    carregandoHistorico.value = false 
+  }
 }
 
 const etapasVisiveis = computed(() => {
@@ -919,14 +1098,30 @@ const etapasVisiveis = computed(() => {
       titulo: tituloEtapa,
       dataEntrada: item.data_entrada ? formatarDataHoraTimezone(item.data_entrada) : null,
       dataSaida: dataSaidaCalculada ? formatarDataHoraTimezone(dataSaidaCalculada) : null,
-      comprovante_producao_loja: item.comprovante_producao_loja
+      comprovante_producao_loja: item.comprovante_producao_loja,
+      comprovante_producao_externa: item.comprovante_producao_externa
     };
   });
 
   return etapas.reverse();
 });
 
+const linkComprovanteExterno = computed(() => {
+  if (!etapasVisiveis.value) return null;
+  const etapaComPdf = etapasVisiveis.value.find(e => e.comprovante_producao_externa);
+  return etapaComPdf ? etapaComPdf.comprovante_producao_externa : null;
+});
+
+const etapaPDV = computed(() => {
+  if (!etapasVisiveis.value) return null;
+  return etapasVisiveis.value.find(e => e.status === 'PDV' || e.comprovante_producao_loja);
+});
+
 // --- LISTAS AUXILIARES ---
+const listaContasBancarias = ref<{ id: string, bank_name: string }[]>([])
+const listaBeneficiarios = ref<{ id: string, nome: string }[]>([])
+const listaPlanoContas = ref<{ id: string, name: string }[]>([])
+
 const listaTecidos = ref<{ id: string, fabric_type: string }[]>([])
 const listaEstampas = ref<{ id: string, title: string }[]>([])
 const produtoSearchTerm = ref('')
@@ -937,6 +1132,12 @@ const buscarListasAuxiliares = async () => {
   try {
     const { data: tecidos } = await supabase.from('stock').select('id, fabric_type').order('fabric_type').eq('target_tab', 'tab_2kc7pi').eq('visible_in_sales', true)
     if (tecidos) listaTecidos.value = tecidos
+    const { data: ContaBanco } = await supabase.from('finance_accounts').select('id, bank_name').order('bank_name').eq('is_active', true)
+    if (ContaBanco) listaContasBancarias.value = ContaBanco
+    const { data: Beneficiarios } = await supabase.from('suppliers_mj').select('id, nome').order('nome').eq('situacao', 'Ativo')
+    if (Beneficiarios) listaBeneficiarios.value = Beneficiarios
+    const { data: PlanoContas } = await supabase.from('finance_chart_of_accounts').select('id, name').order('name').eq('type', 'Despesa').eq('active', true)
+    if (PlanoContas) listaPlanoContas.value = PlanoContas
     const { data: estampas } = await supabase.from('catalog_stamps').select('id, title').order('title')
     if (estampas) listaEstampas.value = estampas
   } catch (error) { console.error(error) }
@@ -1229,13 +1430,13 @@ const ExcluirItem = async () => {
   if (!pecaEmExclusaoId.value) return
   salvando.value = true
   try {
-    const { error } = await supabase.from('kanban_colecao').delete().eq('id', pecaEmExclusaoId.value)
+    const { error } = await supabase.from('kanban_producao').delete().eq('id', pecaEmExclusaoId.value)
     if (error) throw error
     todasPecas.value = todasPecas.value.filter(p => p.id !== pecaEmExclusaoId.value)
     organizarColunas(); exibirModalExclusao.value = false
-    appStore.showSnackbar('Coleção excluída com sucesso.', 'success');
+    appStore.showSnackbar('Produção excluída com sucesso.', 'success');
   } catch (error: any) { 
-    appStore.showSnackbar(`Não foi possível excluir a coleção. Detalhe: ${error?.message || error?.details}`, 'error') 
+    appStore.showSnackbar(`Não foi possível excluir a produção. Detalhe: ${error?.message || error?.details}`, 'error') 
   }
   finally { salvando.value = false }
 }
@@ -1412,13 +1613,16 @@ const kpiList = computed(() => [
 // --- ESTADO DO MODAL FINANCEIRO ---
 const exibirModalPagamento = ref(false)
 const pecaPagamento = ref<Peca | null>(null)
-const dadosPagamento = reactive({ id: '', valor: '', data_vencimento: '', descricao: '' })
+const dadosPagamento = reactive({ id: '', valor: '', data_vencimento: '', descricao: '', conta: '', beneficiario: '', categoria: '' })
 
 const abrirModalPagamento = (peca: Peca) => {
   dadosPagamento.id = peca.id
   pecaPagamento.value = peca; dadosPagamento.valor = peca.valor_servico ? peca.valor_servico.toString() : ''
   dadosPagamento.data_vencimento = new Date().toISOString().split('T')[0]
-  dadosPagamento.descricao = `Pgto Parceiro Externo (${getTituloColuna(peca.status || '')}) - Lote: ${peca.nome}`
+  dadosPagamento.descricao = `Pagamento Serviço Externo (${getTituloColuna(peca.status || '')}) - Lote: ${peca.nome}`
+  dadosPagamento.beneficiario = listaBeneficiarios.value[0]?.id || ''
+  dadosPagamento.conta = listaContasBancarias.value[0]?.id || ''
+  dadosPagamento.categoria = listaPlanoContas.value[0]?.id || ''
   exibirModalPagamento.value = true
 }
 
@@ -1434,20 +1638,34 @@ const confirmarPagamentoFaccao = async () => {
 
   salvando.value = true
   try {
+    const fornecedorSelecionado = listaBeneficiarios.value.find(b => b.id === dadosPagamento.beneficiario)
+    const nomeBeneficiario = fornecedorSelecionado ? fornecedorSelecionado.nome : 'Serviço Externo'
+
     const payload = {
-      descricao: dadosPagamento.descricao,
-      valor: parseFloat(dadosPagamento.valor),
-      data_vencimento: dadosPagamento.data_vencimento,
+      description: dadosPagamento.descricao,
+      value: parseFloat(dadosPagamento.valor),
+      due_date: dadosPagamento.data_vencimento,
       status: 'pendente',
-      categoria: 'Serviço Externo (Facção)',
-      empresa_id: companyStore.currentCompany?.id,
+      category: 'Serviço Externo (Facção)',
+      
+      entity_name: nomeBeneficiario,
+      
+      company_id: companyStore.currentCompany?.id || null,
+      bank_account_id: dadosPagamento.conta || null,
+      chart_of_accounts_id: dadosPagamento.categoria || null,
+            
+      installment_number: 1,
+      total_installments: 1,
+      competence_date: new Date().toISOString().split('T')[0],
+      reconciliation_status: 'PENDING'
     }
 
-    const { error } = await supabase.from('contas_pagar').insert([payload])
+    const { error } = await supabase.from('finance_payables').insert([payload])
     if (error) throw error
 
     appStore.showSnackbar('Lançamento registrado no Contas a Pagar com sucesso!', 'success')
 
+    // Atualiza a ficha de produção indicando que já foi faturado
     const payloadAtt = { faturado: 1 }
     const { error: erroAtt } = await supabase.from('kanban_producao').update(payloadAtt).eq('id', dadosPagamento.id)
     if (erroAtt) throw erroAtt
@@ -1460,6 +1678,10 @@ const confirmarPagamentoFaccao = async () => {
   } finally {
     salvando.value = false
   }
+}
+
+const baixarPDFExternoURL = (url: string) => {
+  window.open(url, '_blank');
 }
 
 const baixarPDFDoCard = (peca: Peca) => gerarPDFOrdemServico(peca)
@@ -1496,9 +1718,10 @@ const baixarPDF = async (historicoId: string) => {
   URL.revokeObjectURL(blobUrl)
 }
 
-// ================= GERAÇÃO DE PDFS =================
-const gerarPDFOrdemServico = (peca: Peca, etapaAvulsa?: string, extrasAvulsos?: any) => {
-  const dataHoje = new Date().toLocaleDateString('pt-BR')
+const gerarPDFOrdemServico = async (
+  peca: Peca, etapaAvulsa?: string, extrasAvulsos?: any, colunaIdDestino?: string
+) => {
+   const dataHoje = new Date().toLocaleDateString('pt-BR')
   const horaHoje = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
   const etapa = typeof etapaAvulsa === 'string' ? etapaAvulsa : getTituloColuna(peca.status || '')
   const qtd = extrasAvulsos?.quantidadeMove || peca.quantidade || 0
@@ -1600,25 +1823,80 @@ const gerarPDFOrdemServico = (peca: Peca, etapaAvulsa?: string, extrasAvulsos?: 
     </html>
   `
 
-  let iframe = document.getElementById('impressao-pdf-oculto') as HTMLIFrameElement
-  if (!iframe) {
-    iframe = document.createElement('iframe')
-    iframe.id = 'impressao-pdf-oculto'
-    iframe.style.display = 'none'
-    document.body.appendChild(iframe)
+  const element = document.createElement('div')
+
+  element.innerHTML = html
+
+  document.body.appendChild(element)
+
+  const opt = {
+    margin: 0,
+    filename: `guia.pdf`,
+    image: { type: 'jpeg', quality: 1 },
+    html2canvas: {
+      scale: 2
+    },
+    jsPDF: {
+      unit: 'mm',
+      format: 'a4',
+      orientation: 'portrait'
+    }
   }
 
-  const doc = iframe.contentDocument || iframe.contentWindow?.document
-  if (doc) {
-    doc.open()
-    doc.write(html)
-    doc.close()
+  // GERA BLOB PDF
+  const pdfBlob = await html2pdf()
+    .set(opt)
+    .from(element)
+    .outputPdf('blob')
+
+  document.body.removeChild(element)
+
+  // Dispara o download local nativamente para não passar em branco para o usuário
+  const blobUrlLocal = URL.createObjectURL(pdfBlob)
+  const linkLocal = document.createElement('a')
+  linkLocal.href = blobUrlLocal
+  linkLocal.download = `OS_Externa_${numeroOS}.pdf`
+  document.body.appendChild(linkLocal)
+  linkLocal.click()
+  linkLocal.remove()
+  URL.revokeObjectURL(blobUrlLocal)
+
+  // Faz o upload pro bucket
+  const nomeArquivo = `Comprovante_servico_externo/${peca.id}_${Date.now()}.pdf`
+
+  const { error } = await supabase.storage
+    .from('comprovanteProducao')
+    .upload(nomeArquivo, pdfBlob, {
+      contentType: 'application/pdf',
+      upsert: true
+    })
+
+  if (error) {
+    console.error(error)
+    return
   }
 
-  setTimeout(() => {
-    iframe.contentWindow?.focus()
-    iframe.contentWindow?.print()
-  }, 500)
+  // URL pública
+  const { data } = supabase.storage
+    .from('comprovanteProducao')
+    .getPublicUrl(nomeArquivo)
+
+  const urlPDF = data.publicUrl
+
+  // salva no banco da etapa correspondente (não mais "PDV" travado)
+  let queryHistorico = supabase
+    .from('kanban_producao_historico')
+    .update({
+      comprovante_producao_externa: urlPDF,
+      comprovante_path_externa: nomeArquivo
+    })
+    .eq('producao_id', peca.id)
+
+  if (colunaIdDestino) {
+    queryHistorico = queryHistorico.eq('status', colunaIdDestino)
+  }
+
+  await queryHistorico
 }
 
 const gerarPDFEnvioLoja = async (
@@ -1745,10 +2023,10 @@ const gerarPDFEnvioLoja = async (
 
   document.body.removeChild(element)
 
-  const nomeArquivo = `${peca.id}-${Date.now()}.pdf`
+  const nomeArquivo = `Comprovante_Envio_Loja/${peca.id}_${Date.now()}.pdf`
 
   const { error } = await supabase.storage
-    .from('comprovanteProducaoLoja')
+    .from('comprovanteProducao')
     .upload(nomeArquivo, pdfBlob, {
       contentType: 'application/pdf',
       upsert: true
@@ -1761,7 +2039,7 @@ const gerarPDFEnvioLoja = async (
 
   // URL pública
   const { data } = supabase.storage
-    .from('comprovanteProducaoLoja')
+    .from('comprovanteProducao')
     .getPublicUrl(nomeArquivo)
 
   const urlPDF = data.publicUrl
@@ -1913,6 +2191,10 @@ const confirmarEnvioEstoqueFinal = async () => {
 
 const confirmarMovimentacao = async () => {
   if (!ConfirmacaoPecaSelecionada.value || !colunaDestino.value) return
+  if (ConfirmacaoPecaSelecionada.value.tipo_externo === 1 && !ConfirmacaoPecaSelecionada.value.faturado) {
+    appStore.showSnackbar('Não é possível avançar. Fature o serviço externo atual (Lançar Contas a Pagar) antes de mover o lote.', 'error')
+    return
+  }
   const nomeDestino = getTituloColuna(colunaDestino.value)
   let isExterno = false
 
@@ -1957,13 +2239,11 @@ const confirmarMovimentacao = async () => {
     const irmao = pecaEquivalenteNoDestino.value
     const qtdAvancar = tipoAvanco.value === 'parcial' ? Number(qtdDesmembrada.value) : (pecaAtual.quantidade || 0)
 
-    // --- 1. BLOQUEIA AVANÇO DE 0 PEÇAS ---
     if (qtdAvancar <= 0) {
       appStore.showSnackbar('A quantidade a avançar deve ser maior que zero.', 'error')
       return
     }
 
-    // --- 2. BLOQUEIA DEIXAR O LOTE ANTIGO COM 0 PEÇAS ---
     if (tipoAvanco.value === 'parcial' && qtdAvancar >= (pecaAtual.quantidade || 0)) {
       appStore.showSnackbar('Para avançar todo o lote, selecione a opção de avanço completo.', 'warning')
       return
@@ -1971,24 +2251,38 @@ const confirmarMovimentacao = async () => {
 
     const dadosExtrasEtapa: Record<string, any> = {
       tipo_externo: isExterno ? 1 : 0,
-      descricao_etapa: isExterno ? novaPeca.descricao_etapa : null,
-      valor_servico: isExterno ? (parseFloat(novaPeca.valor_servico) || null) : null
     }
 
-    if (nomeDestino === 'Corte' && !isExterno) {
-      dadosExtrasEtapa.maquina_corte_id = novaPeca.maquina_corte_id || null;
-      dadosExtrasEtapa.operador_corte_id = novaPeca.operador_corte_id || null;
+    if (isExterno) {
+      dadosExtrasEtapa.descricao_etapa = novaPeca.descricao_etapa;
+      dadosExtrasEtapa.valor_servico = parseFloat(novaPeca.valor_servico) || null;
     }
-    if (nomeDestino === 'Costura' && !isExterno) {
-      dadosExtrasEtapa.maquina_costura_id = novaPeca.maquina_costura_id || null;
-      dadosExtrasEtapa.operador_costura_id = novaPeca.operador_costura_id || null;
+
+    if (nomeDestino === 'Corte') {
+      dadosExtrasEtapa.tipo_corte = novaPeca.tipo_corte || 'interna'; // SALVANDO NO BANCO
+      if (!isExterno) {
+        dadosExtrasEtapa.maquina_corte_id = novaPeca.maquina_corte_id || null;
+        dadosExtrasEtapa.operador_corte_id = novaPeca.operador_corte_id || null;
+      }
     }
-    if (nomeDestino === 'Acabamento' && !isExterno) {
-      dadosExtrasEtapa.maquina_acabamento_id = novaPeca.maquina_acabamento_id || null;
-      dadosExtrasEtapa.operador_acabamento_id = novaPeca.operador_acabamento_id || null;
+    if (nomeDestino === 'Costura') {
+      dadosExtrasEtapa.tipo_costura = novaPeca.tipo_costura || 'interna'; // SALVANDO NO BANCO
+      if (!isExterno) {
+        dadosExtrasEtapa.maquina_costura_id = novaPeca.maquina_costura_id || null;
+        dadosExtrasEtapa.operador_costura_id = novaPeca.operador_costura_id || null;
+      }
+    }
+    if (nomeDestino === 'Acabamento') {
+      dadosExtrasEtapa.tipo_acabamento = novaPeca.tipo_acabamento || 'interna'; // SALVANDO NO BANCO
+      if (!isExterno) {
+        dadosExtrasEtapa.maquina_acabamento_id = novaPeca.maquina_acabamento_id || null;
+        dadosExtrasEtapa.operador_acabamento_id = novaPeca.operador_acabamento_id || null;
+      }
     }
 
     const { expanded, id, created_at, ...pecaLimpaParaDB } = pecaAtual;
+
+    let idPecaNoDestino = pecaAtual.id;
 
     if (tipoAvanco.value === 'parcial') {
       const { error: err1 } = await supabase.from('kanban_producao').update({ quantidade: (pecaAtual.quantidade || 0) - qtdAvancar }).eq('id', pecaAtual.id)
@@ -2001,15 +2295,17 @@ const confirmarMovimentacao = async () => {
           ...dadosExtrasEtapa
         }).eq('id', irmao.id)
         if (err2) throw err2;
+        idPecaNoDestino = irmao.id;
       } else {
-        const { error: err3 } = await supabase.from('kanban_producao').insert([{
+        const { data: novaPecaCriada, error: err3 } = await supabase.from('kanban_producao').insert([{
           ...pecaLimpaParaDB,
           nome: `${getBaseName(pecaAtual.nome)} (Desmembrado)`,
           quantidade: qtdAvancar,
           status: colunaDestino.value,
           ...dadosExtrasEtapa
-        }])
+        }]).select().single()
         if (err3) throw err3;
+        idPecaNoDestino = novaPecaCriada.id;
       }
     } else {
       if (irmao && tipoAvanco.value !== 'completo_separado') {
@@ -2019,7 +2315,8 @@ const confirmarMovimentacao = async () => {
           ...dadosExtrasEtapa
         }).eq('id', irmao.id)
         if (err4) throw err4;
-
+        
+        idPecaNoDestino = irmao.id;
         const { error: err5 } = await supabase.from('kanban_producao').delete().eq('id', pecaAtual.id)
         if (err5) throw err5;
       } else {
@@ -2029,11 +2326,16 @@ const confirmarMovimentacao = async () => {
           nome: getBaseName(pecaAtual.nome)
         }).eq('id', pecaAtual.id)
         if (err6) throw err6;
+        idPecaNoDestino = pecaAtual.id;
       }
     }
 
     if (isExterno) {
-      gerarPDFOrdemServico(pecaAtual, nomeDestino, { quantidadeMove: qtdAvancar, valor_servico: novaPeca.valor_servico, descricao_etapa: novaPeca.descricao_etapa })
+       // Buscar os dados frescos pra ter certeza que a ficha será gerada pra peça certa
+       const { data: freshPeca } = await supabase.from('kanban_producao').select('*').eq('id', idPecaNoDestino).single();
+       if(freshPeca){
+          gerarPDFOrdemServico(freshPeca, nomeDestino, { quantidadeMove: qtdAvancar, valor_servico: novaPeca.valor_servico, descricao_etapa: novaPeca.descricao_etapa }, colunaDestino.value)
+       }
     }
 
     appStore.showSnackbar('Movimentação concluída com sucesso!', 'success');

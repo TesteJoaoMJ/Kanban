@@ -312,7 +312,7 @@
             <v-card-text class="pa-0" style="max-height: 55vh;">
               <v-list v-if="pecasFiltradasTimeline.length > 0" lines="two" class="bg-transparent pa-2">
                 <v-list-item v-for="peca in pecasFiltradasTimeline" :key="peca.id"
-                  @click="selecionarPecaParaHistorico(peca)" class="rounded-lg mb-1" link>
+                  @click="abrirHistoricoDetalhado(peca)" class="rounded-lg mb-1" link>
                   <template v-slot:title>
                     <span class="font-weight-bold" v-if="peca.status === 'finalizado'">{{ peca.nome }} - {{ peca.autor }}</span>
                     <span class="font-weight-bold" v-else>{{ peca.nome }}</span>
@@ -332,7 +332,6 @@
                       variant="flat" class="font-weight-medium">
                       {{ peca.status === 'finalizado' ? 'Em Produção' : getColunaTitulo(peca.status) }}
                     </v-chip>
-                    <v-btn icon="mdi-cog-outline" variant="text" size="small" color="primary" @click.stop="abrirHistoricoDetalhado(peca)" class="ml-2" v-if="peca.status === 'finalizado'"></v-btn>
                   </template>
                 </v-list-item>
               </v-list>
@@ -417,7 +416,7 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="exibirModalDetalhesPeca" max-width="850" scrollable>
+    <v-dialog v-model="exibirModalDetalhesPeca" max-width="900" scrollable>
       <v-card :theme="themeStore?.currentMode" rounded="lg">
         <v-card-title class="d-flex justify-space-between align-center px-5 pt-4 pb-3" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-4' : 'bg-grey-darken-4'">
           <div class="d-flex align-center gap-3">
@@ -433,15 +432,15 @@
         </v-card-title>
         <v-divider></v-divider>
 
-        <v-card-text class="pa-5" style="max-height: 75vh;">
+        <v-card-text class="pa-5 overflow-hidden">
            <div v-if="carregandoHistorico" class="d-flex flex-column align-center justify-center py-10">
               <v-progress-circular indeterminate color="primary" size="40"></v-progress-circular>
               <span class="text-caption mt-3 text-medium-emphasis">Coletando informações...</span>
            </div>
-           <v-row v-else dense>
-              <v-col cols="12" md="6" class="pr-md-2">
+           <v-row v-else dense class="align-stretch">
+              <v-col cols="12" md="6" class="pr-md-2 h-100">
                  <div class="text-caption font-weight-black text-uppercase mb-2 opacity-70 tracking-widest"><v-icon size="small" class="mr-1">mdi-information-outline</v-icon> Dados da Peça</div>
-                 <v-card variant="outlined" class="pa-4 rounded-lg h-100" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-5 border-grey-lighten-2' : 'bg-grey-darken-4 border-white-05'">
+                 <v-card variant="outlined" class="pa-4 rounded-lg overflow-y-auto custom-scroll" style="height: 55vh;" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-5 border-grey-lighten-2' : 'bg-grey-darken-4 border-white-05'">
                     <div class="d-flex flex-column gap-3 text-body-2">
                        <div class="d-flex justify-space-between align-center border-b pb-2" :class="themeStore?.currentMode === 'light' ? 'border-grey-lighten-3' : 'border-white-05'">
                           <strong class="opacity-70">Status Atual:</strong>
@@ -450,7 +449,7 @@
                           </v-chip>
                        </div>
                        <div class="d-flex justify-space-between">
-                          <strong class="opacity-70">Criado por:</strong> <span class="font-weight-medium">{{ detalhesPecaDB?.autor || 'N/A' }}</span>
+                          <strong class="opacity-70">Criado por:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.autor || 'N/A' }}</span>
                        </div>
                        <div class="d-flex justify-space-between">
                           <strong class="opacity-70">Data de Entrega:</strong> <span class="font-weight-medium"><v-icon size="x-small" class="mr-1">mdi-calendar</v-icon>{{ formatarData(detalhesPecaDB?.data_entrega) }}</span>
@@ -476,18 +475,20 @@
                  </v-card>
               </v-col>
 
-              <v-col cols="12" md="6" class="pl-md-2 mt-4 mt-md-0">
+              <v-col cols="12" md="6" class="pl-md-2 mt-4 mt-md-0 h-100">
                  <div class="text-caption font-weight-black text-uppercase mb-2 opacity-70 tracking-widest"><v-icon size="small" class="mr-1">mdi-timeline-clock-outline</v-icon> Histórico de Etapas</div>
-                 <v-card variant="outlined" class="pa-4 rounded-lg h-100 overflow-y-auto custom-scroll" style="max-height: 400px;" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-5 border-grey-lighten-2' : 'bg-grey-darken-4 border-white-05'">
+                 <v-card variant="outlined" class="pa-4 rounded-lg overflow-y-auto custom-scroll" style="height: 55vh;" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-5 border-grey-lighten-2' : 'bg-grey-darken-4 border-white-05'">
                     <v-timeline density="compact" side="end" align="start" truncate-line="both">
                       <v-timeline-item v-for="etapa in etapasVisiveis" :key="etapa.id"
                         :dot-color="etapa.dataSaida ? 'success' : 'primary'"
                         :icon="etapa.dataSaida ? 'mdi-check' : 'mdi-circle-medium'" size="small">
                         <div class="mb-3">
-                           <div class="font-weight-bold text-body-2">{{ etapa.titulo }}</div>
+                           <div class="font-weight-bold text-body-2 d-flex align-center justify-space-between">
+                              {{ etapa.titulo }}
+                           </div>
                            <div class="text-caption text-medium-emphasis mt-1 d-flex flex-column gap-1">
-                             <div class="d-flex align-center"><v-icon size="x-small" class="mr-1">mdi-login</v-icon> {{ etapa.dataEntrada }}</div>
-                             <div class="d-flex align-center" v-if="etapa.dataSaida"><v-icon size="x-small" class="mr-1">mdi-logout</v-icon> {{ etapa.dataSaida }}</div>
+                             <div class="d-flex align-center"><v-icon size="x-small" class="mr-1">mdi-login</v-icon> Entrada: {{ etapa.dataEntrada }}</div>
+                             <div class="d-flex align-center" v-if="etapa.dataSaida"><v-icon size="x-small" class="mr-1 text-success">mdi-logout</v-icon> Saída: {{ etapa.dataSaida }}</div>
                            </div>
                         </div>
                       </v-timeline-item>
@@ -500,8 +501,14 @@
               </v-col>
            </v-row>
         </v-card-text>
-        <v-card-actions class="pa-4 border-t d-flex justify-end" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-4' : 'bg-grey-darken-4'">
-           <v-btn variant="tonal" class="px-6 font-weight-bold text-none" @click="exibirModalDetalhesPeca = false">Fechar Dossiê</v-btn>
+        <v-card-actions class="pa-4 border-t d-flex justify-space-between align-center" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-4' : 'bg-grey-darken-4'">
+           <div></div>
+           <div class="d-flex gap-3 align-center">
+             <v-btn variant="tonal" class="px-5 font-weight-bold text-none" @click="exibirModalDetalhesPeca = false">Fechar</v-btn>
+             <v-btn color="primary" variant="flat" class="px-5 font-weight-bold text-none" prepend-icon="mdi-download" @click="baixarPDFDoCard(detalhesPecaDB || pecaSelecionada)">
+               Baixar Dossiê (PDF)
+             </v-btn>
+           </div>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -616,6 +623,9 @@ import { useCompanyStore } from '@/stores/company';
 import { useThemeStore } from '@/stores/theme';
 import { supabase } from '@/api/supabase';
 import { useAppStore } from '@/stores/app';
+
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 
 const appStore = useAppStore();
 const themeStore = useThemeStore()
@@ -800,6 +810,94 @@ const abrirHistoricoDetalhado = async (peca: Peca) => {
   }
 }
 
+// LOGICA DE GERAR PDF DE DOSSIÊ DE COLEÇÃO
+const baixarPDFDoCard = (peca: Peca) => gerarPDFDossieColecao(peca)
+
+const gerarPDFDossieColecao = (peca: Peca) => {
+  const dataHoje = new Date().toLocaleDateString('pt-BR');
+  const horaHoje = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const numeroDoc = peca.id ? peca.id.substring(0, 8).toUpperCase() : Math.floor(Math.random() * 1000000);
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>DOSSIÊ COLEÇÃO - ${numeroDoc}</title>
+      <style>
+        @page { size: A4 portrait; margin: 15mm; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #111827; margin: 0; padding: 0; line-height: 1.5; }
+        .container { width: 100%; max-width: 190mm; margin: 0 auto; }
+        .header { display: flex; width: 100%; border: 2px solid #111827; border-radius: 6px; margin-bottom: 20px; overflow: hidden; }
+        .header-title { width: 75%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; }
+        .header-title h1 { margin: 0; font-size: 20px; text-transform: uppercase; letter-spacing: 1px; color: #111827; }
+        .header-title p { margin: 5px 0 0 0; font-size: 14px; font-weight: 600; color: #4b5563; }
+        .header-info { width: 25%; border-left: 1px solid #111827; background-color: #f9fafb; padding: 10px; font-size: 12px; }
+        .header-info strong { display: inline-block; width: 60px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border-radius: 6px; }
+        th, td { border: 1px solid #d1d5db; padding: 8px 12px; text-align: left; }
+        th { background-color: #f3f4f6; font-size: 12px; text-transform: uppercase; color: #374151; font-weight: 700; width: 25%; }
+        td { font-size: 13px; color: #111827; }
+        .obs-box { border: 1px solid #d1d5db; border-radius: 6px; padding: 15px; margin-bottom: 20px; min-height: 100px; background-color: #fcfcfc; }
+        .obs-title { font-weight: 700; font-size: 12px; text-transform: uppercase; margin-bottom: 8px; color: #374151; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
+        .footer { margin-top: 40px; text-align: center; font-size: 10px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 10px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div class="header-title">
+            <h1>Dossiê de Coleção</h1>
+            <p>FICHA TÉCNICA E ACOMPANHAMENTO</p>
+          </div>
+          <div class="header-info">
+            <div style="margin-bottom: 5px;"><strong>DOC Nº:</strong> <span style="color: #ef4444; font-weight: 700; font-size: 14px;">${numeroDoc}</span></div>
+            <div style="margin-bottom: 5px;"><strong>Emissão:</strong> ${dataHoje}</div>
+            <div><strong>Hora:</strong> ${horaHoje}</div>
+          </div>
+        </div>
+
+        <table>
+          <tr><th>Modelo da Peça</th><td colspan="3" style="font-weight: 700; font-size: 14px; text-transform: uppercase;">${peca.nome || 'N/A'}</td></tr>
+          <tr><th>Criado Por</th><td>${peca.autor || 'N/A'}</td><th>Previsão Entrega</th><td style="color: #dc2626; font-weight: 700;">${formatarData(peca.data_entrega)}</td></tr>
+          <tr><th>Produto Base</th><td colspan="3">${peca.produto_nome || 'Não vinculado'}</td></tr>
+          <tr><th>Tecido</th><td>${peca.tecido_nome || 'N/A'}</td><th>Estampa</th><td>${peca.estampa_nome || 'N/A'}</td></tr>
+          <tr><th>Quantidade</th><td colspan="3" style="font-weight: 700; font-size: 14px;">${peca.quantidade || 0} un.</td></tr>
+        </table>
+
+        <div class="obs-box">
+          <div class="obs-title">Observações e Detalhes Técnicos</div>
+          <div style="font-size: 13px; line-height: 1.6; white-space: pre-line;">${peca.descricao || 'Nenhuma observação registrada.'}</div>
+        </div>
+
+        <div class="footer">Documento gerado automaticamente pelo Sistema Foxie ${dataHoje} às ${horaHoje}.</div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  let iframe = document.getElementById('impressao-pdf-oculto') as HTMLIFrameElement;
+  if (!iframe) {
+    iframe = document.createElement('iframe');
+    iframe.id = 'impressao-pdf-oculto';
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+  }
+
+  const doc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (doc) {
+    doc.open();
+    doc.write(html);
+    doc.close();
+  }
+
+  setTimeout(() => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+  }, 500);
+};
+
 watch(mostrarModalFeed, (aberto) => {
   if (aberto) {
     const temAtivas = todasPecas.value.some(p => p.status !== 'finalizado')
@@ -895,7 +993,7 @@ const buscarProdutosAutocomplete = async (val?: any) => {
       let query = supabase
         .from('stock')
         .select('id, fabric_type, base_price')
-        .eq('target_tab', 'cajuia')
+        .eq('target_tab', 'ready_delivery')
         .order('fabric_type')
         .limit(50);
 
