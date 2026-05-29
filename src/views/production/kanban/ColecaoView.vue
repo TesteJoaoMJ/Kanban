@@ -327,11 +327,12 @@
                     </div>
                   </template>
 
-                  <template v-slot:append>
+                  <template v-slot:append class="d-flex flex-column gap-1">
                     <v-chip size="small" :color="peca.status === 'finalizado' ? 'success' : getColunaCor(peca.status)"
                       variant="flat" class="font-weight-medium">
                       {{ peca.status === 'finalizado' ? 'Em Produção' : getColunaTitulo(peca.status) }}
                     </v-chip>
+                    <v-btn icon="mdi-cog-outline" variant="text" size="small" color="primary" @click.stop="abrirHistoricoDetalhado(peca)" class="ml-2" v-if="peca.status === 'finalizado'"></v-btn>
                   </template>
                 </v-list-item>
               </v-list>
@@ -413,6 +414,95 @@
           </div>
 
         </v-fade-transition>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="exibirModalDetalhesPeca" max-width="850" scrollable>
+      <v-card :theme="themeStore?.currentMode" rounded="lg">
+        <v-card-title class="d-flex justify-space-between align-center px-5 pt-4 pb-3" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-4' : 'bg-grey-darken-4'">
+          <div class="d-flex align-center gap-3">
+             <v-avatar color="primary" variant="tonal" rounded="lg">
+                <v-icon>mdi-tshirt-crew</v-icon>
+             </v-avatar>
+             <div>
+               <div class="text-h6 font-weight-bold lh-normal">{{ detalhesPecaDB?.nome || pecaSelecionada?.nome }}</div>
+               <div class="text-caption text-medium-emphasis">Dossiê completo da peça e auditoria de fases</div>
+             </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" density="comfortable" @click="exibirModalDetalhesPeca = false"></v-btn>
+        </v-card-title>
+        <v-divider></v-divider>
+
+        <v-card-text class="pa-5" style="max-height: 75vh;">
+           <div v-if="carregandoHistorico" class="d-flex flex-column align-center justify-center py-10">
+              <v-progress-circular indeterminate color="primary" size="40"></v-progress-circular>
+              <span class="text-caption mt-3 text-medium-emphasis">Coletando informações...</span>
+           </div>
+           <v-row v-else dense>
+              <v-col cols="12" md="6" class="pr-md-2">
+                 <div class="text-caption font-weight-black text-uppercase mb-2 opacity-70 tracking-widest"><v-icon size="small" class="mr-1">mdi-information-outline</v-icon> Dados da Peça</div>
+                 <v-card variant="outlined" class="pa-4 rounded-lg h-100" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-5 border-grey-lighten-2' : 'bg-grey-darken-4 border-white-05'">
+                    <div class="d-flex flex-column gap-3 text-body-2">
+                       <div class="d-flex justify-space-between align-center border-b pb-2" :class="themeStore?.currentMode === 'light' ? 'border-grey-lighten-3' : 'border-white-05'">
+                          <strong class="opacity-70">Status Atual:</strong>
+                          <v-chip size="small" :color="detalhesPecaDB?.status === 'finalizado' ? 'success' : getColunaCor(detalhesPecaDB?.status)" variant="flat" class="font-weight-bold">
+                            {{ detalhesPecaDB?.status === 'finalizado' ? 'Em Produção' : getColunaTitulo(detalhesPecaDB?.status) }}
+                          </v-chip>
+                       </div>
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Criado por:</strong> <span class="font-weight-medium">{{ detalhesPecaDB?.autor || 'N/A' }}</span>
+                       </div>
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Data de Entrega:</strong> <span class="font-weight-medium"><v-icon size="x-small" class="mr-1">mdi-calendar</v-icon>{{ formatarData(detalhesPecaDB?.data_entrega) }}</span>
+                       </div>
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Quantidade:</strong> <span class="font-weight-medium">{{ detalhesPecaDB?.quantidade || 0 }} un.</span>
+                       </div>
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Produto Base:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.produto_nome || 'Não vinculado' }}</span>
+                       </div>
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Tecido:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.tecido_nome || 'N/A' }}</span>
+                       </div>
+                       <div class="d-flex justify-space-between">
+                          <strong class="opacity-70">Estampa:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.estampa_nome || 'N/A' }}</span>
+                       </div>
+
+                       <div v-if="detalhesPecaDB?.descricao" class="mt-2">
+                         <strong class="opacity-70 d-block mb-1">Observações:</strong>
+                         <div class="pa-3 rounded border text-caption" :class="themeStore?.currentMode === 'light' ? 'bg-white border-grey-lighten-3' : 'bg-grey-darken-3 border-white-05'">{{ detalhesPecaDB?.descricao }}</div>
+                       </div>
+                    </div>
+                 </v-card>
+              </v-col>
+
+              <v-col cols="12" md="6" class="pl-md-2 mt-4 mt-md-0">
+                 <div class="text-caption font-weight-black text-uppercase mb-2 opacity-70 tracking-widest"><v-icon size="small" class="mr-1">mdi-timeline-clock-outline</v-icon> Histórico de Etapas</div>
+                 <v-card variant="outlined" class="pa-4 rounded-lg h-100 overflow-y-auto custom-scroll" style="max-height: 400px;" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-5 border-grey-lighten-2' : 'bg-grey-darken-4 border-white-05'">
+                    <v-timeline density="compact" side="end" align="start" truncate-line="both">
+                      <v-timeline-item v-for="etapa in etapasVisiveis" :key="etapa.id"
+                        :dot-color="etapa.dataSaida ? 'success' : 'primary'"
+                        :icon="etapa.dataSaida ? 'mdi-check' : 'mdi-circle-medium'" size="small">
+                        <div class="mb-3">
+                           <div class="font-weight-bold text-body-2">{{ etapa.titulo }}</div>
+                           <div class="text-caption text-medium-emphasis mt-1 d-flex flex-column gap-1">
+                             <div class="d-flex align-center"><v-icon size="x-small" class="mr-1">mdi-login</v-icon> {{ etapa.dataEntrada }}</div>
+                             <div class="d-flex align-center" v-if="etapa.dataSaida"><v-icon size="x-small" class="mr-1">mdi-logout</v-icon> {{ etapa.dataSaida }}</div>
+                           </div>
+                        </div>
+                      </v-timeline-item>
+                    </v-timeline>
+                    <div v-if="etapasVisiveis.length === 0" class="text-caption text-center opacity-60 py-8 d-flex flex-column align-center">
+                        <v-icon size="large" class="mb-2">mdi-history</v-icon>
+                        Nenhum histórico registrado.
+                    </div>
+                 </v-card>
+              </v-col>
+           </v-row>
+        </v-card-text>
+        <v-card-actions class="pa-4 border-t d-flex justify-end" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-4' : 'bg-grey-darken-4'">
+           <v-btn variant="tonal" class="px-6 font-weight-bold text-none" @click="exibirModalDetalhesPeca = false">Fechar Dossiê</v-btn>
+        </v-card-actions>
       </v-card>
     </v-dialog>
 
@@ -650,6 +740,10 @@ const historicoDB = ref<any[]>([])
 const carregandoHistorico = ref(false)
 const filtroTimeline = ref('atuais')
 
+// VARIÁVEIS PARA O NOVO MODAL DE DETALHES
+const exibirModalDetalhesPeca = ref(false)
+const detalhesPecaDB = ref<any>(null)
+
 const fecharModalTimeline = () => { pecaSelecionada.value = null; historicoDB.value = [] }
 
 const getColunaCor = (statusId: string | null) => colunas.find(c => c.id === statusId)?.cor || 'primary'
@@ -675,6 +769,35 @@ const selecionarPecaParaHistorico = async (peca: Peca) => {
     const { data } = await supabase.from('kanban_colecao_historico').select('*').eq('colecao_id', peca.id).order('data_entrada', { ascending: true })
     if (data) historicoDB.value = data
   } finally { carregandoHistorico.value = false }
+}
+
+const abrirHistoricoDetalhado = async (peca: Peca) => {
+  pecaSelecionada.value = peca
+  carregandoHistorico.value = true
+  exibirModalDetalhesPeca.value = true // Abre o novo modal construído
+  
+  try {
+    // Busca o histórico da peça
+    const { data: historicoData } = await supabase.from('kanban_colecao_historico')
+      .select('*').eq('colecao_id', peca.id).order('data_entrada', { ascending: true })
+    
+    if (historicoData) historicoDB.value = historicoData
+
+    // Busca os dados completos e mais recentes da peça
+    const { data: pecaData } = await supabase.from('kanban_colecao')
+      .select('*').eq('id', peca.id).single()
+      
+    if (pecaData) {
+      detalhesPecaDB.value = pecaData
+    } else {
+      detalhesPecaDB.value = peca // Fallback para a peça já carregada na interface
+    }
+
+  } catch (error) { 
+    console.error(error) 
+  } finally { 
+    carregandoHistorico.value = false 
+  }
 }
 
 watch(mostrarModalFeed, (aberto) => {
