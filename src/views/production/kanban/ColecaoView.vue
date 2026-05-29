@@ -332,6 +332,7 @@
                       variant="flat" class="font-weight-medium">
                       {{ peca.status === 'finalizado' ? 'Em Produção' : getColunaTitulo(peca.status) }}
                     </v-chip>
+                    <v-btn icon="mdi-cog-outline" variant="text" size="small" color="primary" @click.stop="abrirHistoricoDetalhado(peca)" class="ml-2" v-if="peca.status === 'finalizado'"></v-btn>
                   </template>
                 </v-list-item>
               </v-list>
@@ -344,172 +345,102 @@
             </v-card-text>
           </div>
 
-          <div v-else key="timeline">
-            <v-card-title
-              class="d-flex justify-space-between align-center px-3 pt-4 pb-3 bg-grey-lighten-4 dark:bg-grey-darken-4">
-              <div class="d-flex align-center gap-2 overflow-hidden w-100">
-                <v-btn icon="mdi-arrow-left" variant="tonal" size="small" color="primary"
-                  @click="pecaSelecionada = null" class="mr-1"></v-btn>
-                <div class="text-truncate d-flex flex-column">
-                  <div class="text-subtitle-1 font-weight-bold text-truncate lh-normal">{{ pecaSelecionada.nome }}</div>
-                  <div class="text-caption text-medium-emphasis d-flex align-center gap-1">
-                    Fase Atual:
-                    <v-chip size="x-small"
-                      :color="pecaSelecionada.status === 'finalizado' ? 'success' : getColunaCor(pecaSelecionada.status)"
-                      variant="outlined" density="compact">
-                      {{ pecaSelecionada.status === 'finalizado' ? 'Em Produção' :
-                        getColunaTitulo(pecaSelecionada.status)
-                      }}
-                    </v-chip>
-                  </div>
+          <v-card :theme="themeStore?.currentMode" rounded="lg">
+            <v-card-title class="d-flex justify-space-between align-center px-5 pt-4 pb-3" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-4' : 'bg-grey-darken-4'">
+              <div class="d-flex align-center gap-3">
+                <v-avatar color="primary" variant="tonal" rounded="lg">
+                    <v-icon>mdi-tshirt-crew</v-icon>
+                </v-avatar>
+                <div>
+                  <div class="text-h6 font-weight-bold lh-normal">{{ detalhesPecaDB?.nome || pecaSelecionada?.nome }}</div>
+                  <div class="text-caption text-medium-emphasis">Dossiê completo da peça e auditoria de fases</div>
                 </div>
               </div>
               <v-btn icon="mdi-close" variant="text" density="comfortable" @click="mostrarModalFeed = false"></v-btn>
             </v-card-title>
-
             <v-divider></v-divider>
 
-            <v-card-text class="pa-5" style="max-height: 60vh;">
+            <v-card-text class="pa-5 overflow-hidden">
               <div v-if="carregandoHistorico" class="d-flex flex-column align-center justify-center py-10">
-                <v-progress-circular indeterminate color="primary" size="40"></v-progress-circular>
-                <span class="text-caption mt-3 text-medium-emphasis">Carregando histórico...</span>
+                  <v-progress-circular indeterminate color="primary" size="40"></v-progress-circular>
+                  <span class="text-caption mt-3 text-medium-emphasis">Coletando informações...</span>
               </div>
+              <v-row v-else dense class="align-stretch">
+                  <v-col cols="12" md="6" class="pr-md-2 h-100">
+                    <div class="text-caption font-weight-black text-uppercase mb-2 opacity-70 tracking-widest"><v-icon size="small" class="mr-1">mdi-information-outline</v-icon> Dados da Peça</div>
+                    <v-card variant="outlined" class="pa-4 rounded-lg overflow-y-auto custom-scroll" style="height: 55vh;" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-5 border-grey-lighten-2' : 'bg-grey-darken-4 border-white-05'">
+                        <div class="d-flex flex-column gap-3 text-body-2">
+                          <div class="d-flex justify-space-between align-center border-b pb-2" :class="themeStore?.currentMode === 'light' ? 'border-grey-lighten-3' : 'border-white-05'">
+                              <strong class="opacity-70">Status Atual:</strong>
+                              <v-chip size="small" :color="detalhesPecaDB?.status === 'finalizado' ? 'success' : getColunaCor(detalhesPecaDB?.status)" variant="flat" class="font-weight-bold">
+                                {{ detalhesPecaDB?.status === 'finalizado' ? 'Em Produção' : getColunaTitulo(detalhesPecaDB?.status) }}
+                              </v-chip>
+                          </div>
+                          <div class="d-flex justify-space-between">
+                              <strong class="opacity-70">Criado por:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.autor || 'N/A' }}</span>
+                          </div>
+                          <div class="d-flex justify-space-between">
+                              <strong class="opacity-70">Data de Entrega:</strong> <span class="font-weight-medium"><v-icon size="x-small" class="mr-1">mdi-calendar</v-icon>{{ formatarData(detalhesPecaDB?.data_entrega) }}</span>
+                          </div>
+                          <div class="d-flex justify-space-between">
+                              <strong class="opacity-70">Quantidade:</strong> <span class="font-weight-medium">{{ detalhesPecaDB?.quantidade || 0 }} un.</span>
+                          </div>
+                          <div class="d-flex justify-space-between">
+                              <strong class="opacity-70">Produto Base:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.produto_nome || 'Não vinculado' }}</span>
+                          </div>
+                          <div class="d-flex justify-space-between">
+                              <strong class="opacity-70">Tecido:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.tecido_nome || 'N/A' }}</span>
+                          </div>
+                          <div class="d-flex justify-space-between">
+                              <strong class="opacity-70">Estampa:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.estampa_nome || 'N/A' }}</span>
+                          </div>
 
-              <v-timeline v-else density="compact" side="end" align="start" truncate-line="both">
-                <v-timeline-item v-for="etapa in etapasVisiveis" :key="etapa.id"
-                  :dot-color="etapa.dataSaida ? 'success' : 'primary'"
-                  :icon="etapa.dataSaida ? 'mdi-check' : 'mdi-circle-medium'" size="small"
-                  :elevation="etapa.dataSaida ? 0 : 2">
-                  <v-card :variant="etapa.dataSaida ? 'outlined' : 'elevated'" :elevation="etapa.dataSaida ? 0 : 1"
-                    class="mb-2" :class="{ 'bg-primary-lighten-5 dark:bg-grey-darken-3': !etapa.dataSaida }">
+                          <div v-if="detalhesPecaDB?.descricao" class="mt-2">
+                            <strong class="opacity-70 d-block mb-1">Observações:</strong>
+                            <div class="pa-3 rounded border text-caption" :class="themeStore?.currentMode === 'light' ? 'bg-white border-grey-lighten-3' : 'bg-grey-darken-3 border-white-05'">{{ detalhesPecaDB?.descricao }}</div>
+                          </div>
+                        </div>
+                    </v-card>
+                  </v-col>
 
-                    <v-chip v-if="!etapa.dataSaida && etapa.status !== 'finalizado'" size="x-small" color="primary"
-                      variant="flat" class="ml-3 mt-3">
-                      Em andamento
-                    </v-chip>
-
-                    <v-chip v-if="!etapa.dataSaida && etapa.status === 'finalizado'" size="x-small" color="success"
-                      variant="flat" class="ml-3 mt-3">
-                      Aprovado (Em Produção)
-                    </v-chip>
-
-                    <v-card-title class="text-subtitle-2 pt-3 pb-1 d-flex align-center justify-space-between">
-                      {{ etapa.status === 'finalizado' ? 'Enviado para Produção' : etapa.titulo }}
-                    </v-card-title>
-                    <v-card-text class="text-caption pb-3 pt-1 text-medium-emphasis">
-                      <div class="d-flex align-center gap-2 mb-1">
-                        <v-icon size="small" color="grey">mdi-login</v-icon>
-                        <span><strong>Entrada:</strong> {{ etapa.dataEntrada }}</span>
-                      </div>
-                      <div v-if="etapa.dataSaida" class="d-flex align-center gap-2">
-                        <v-icon size="small" color="success">mdi-logout</v-icon>
-                        <span><strong>Saída:</strong> {{ etapa.dataSaida }}</span>
-                      </div>
-                    </v-card-text>
-                  </v-card>
-                </v-timeline-item>
-              </v-timeline>
+                  <v-col cols="12" md="6" class="pl-md-2 mt-4 mt-md-0 h-100">
+                    <div class="text-caption font-weight-black text-uppercase mb-2 opacity-70 tracking-widest"><v-icon size="small" class="mr-1">mdi-timeline-clock-outline</v-icon> Histórico de Etapas</div>
+                    <v-card variant="outlined" class="pa-4 rounded-lg overflow-y-auto custom-scroll" style="height: 55vh;" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-5 border-grey-lighten-2' : 'bg-grey-darken-4 border-white-05'">
+                        <v-timeline density="compact" side="end" align="start" truncate-line="both">
+                          <v-timeline-item v-for="etapa in etapasVisiveis" :key="etapa.id"
+                            :dot-color="etapa.dataSaida ? 'success' : 'primary'"
+                            :icon="etapa.dataSaida ? 'mdi-check' : 'mdi-circle-medium'" size="small">
+                            <div class="mb-3">
+                              <div class="font-weight-bold text-body-2 d-flex align-center justify-space-between">
+                                  {{ etapa.titulo }}
+                              </div>
+                              <div class="text-caption text-medium-emphasis mt-1 d-flex flex-column gap-1">
+                                <div class="d-flex align-center"><v-icon size="x-small" class="mr-1">mdi-login</v-icon> Entrada: {{ etapa.dataEntrada }}</div>
+                                <div class="d-flex align-center" v-if="etapa.dataSaida"><v-icon size="x-small" class="mr-1 text-success">mdi-logout</v-icon> Saída: {{ etapa.dataSaida }}</div>
+                              </div>
+                            </div>
+                          </v-timeline-item>
+                        </v-timeline>
+                        <div v-if="etapasVisiveis.length === 0" class="text-caption text-center opacity-60 py-8 d-flex flex-column align-center">
+                            <v-icon size="large" class="mb-2">mdi-history</v-icon>
+                            Nenhum histórico registrado.
+                        </div>
+                    </v-card>
+                  </v-col>
+              </v-row>
             </v-card-text>
-          </div>
+            <v-card-actions class="pa-4 border-t d-flex justify-space-between align-center" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-4' : 'bg-grey-darken-4'">
+              <div></div>
+              <div class="d-flex gap-3 align-center">
+                <v-btn variant="tonal" class="px-5 font-weight-bold text-none" @click="mostrarModalFeed = false">Fechar</v-btn>
+                <v-btn color="primary" variant="flat" class="px-5 font-weight-bold text-none" prepend-icon="mdi-download" @click="baixarPDFDoCard(detalhesPecaDB || pecaSelecionada)">
+                  Baixar Dossiê (PDF)
+                </v-btn>
+              </div>
+            </v-card-actions>
+          </v-card>
 
         </v-fade-transition>
-      </v-card>
-    </v-dialog>
-
-    <v-dialog v-model="exibirModalDetalhesPeca" max-width="900" scrollable>
-      <v-card :theme="themeStore?.currentMode" rounded="lg">
-        <v-card-title class="d-flex justify-space-between align-center px-5 pt-4 pb-3" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-4' : 'bg-grey-darken-4'">
-          <div class="d-flex align-center gap-3">
-             <v-avatar color="primary" variant="tonal" rounded="lg">
-                <v-icon>mdi-tshirt-crew</v-icon>
-             </v-avatar>
-             <div>
-               <div class="text-h6 font-weight-bold lh-normal">{{ detalhesPecaDB?.nome || pecaSelecionada?.nome }}</div>
-               <div class="text-caption text-medium-emphasis">Dossiê completo da peça e auditoria de fases</div>
-             </div>
-          </div>
-          <v-btn icon="mdi-close" variant="text" density="comfortable" @click="exibirModalDetalhesPeca = false"></v-btn>
-        </v-card-title>
-        <v-divider></v-divider>
-
-        <v-card-text class="pa-5 overflow-hidden">
-           <div v-if="carregandoHistorico" class="d-flex flex-column align-center justify-center py-10">
-              <v-progress-circular indeterminate color="primary" size="40"></v-progress-circular>
-              <span class="text-caption mt-3 text-medium-emphasis">Coletando informações...</span>
-           </div>
-           <v-row v-else dense class="align-stretch">
-              <v-col cols="12" md="6" class="pr-md-2 h-100">
-                 <div class="text-caption font-weight-black text-uppercase mb-2 opacity-70 tracking-widest"><v-icon size="small" class="mr-1">mdi-information-outline</v-icon> Dados da Peça</div>
-                 <v-card variant="outlined" class="pa-4 rounded-lg overflow-y-auto custom-scroll" style="height: 55vh;" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-5 border-grey-lighten-2' : 'bg-grey-darken-4 border-white-05'">
-                    <div class="d-flex flex-column gap-3 text-body-2">
-                       <div class="d-flex justify-space-between align-center border-b pb-2" :class="themeStore?.currentMode === 'light' ? 'border-grey-lighten-3' : 'border-white-05'">
-                          <strong class="opacity-70">Status Atual:</strong>
-                          <v-chip size="small" :color="detalhesPecaDB?.status === 'finalizado' ? 'success' : getColunaCor(detalhesPecaDB?.status)" variant="flat" class="font-weight-bold">
-                            {{ detalhesPecaDB?.status === 'finalizado' ? 'Em Produção' : getColunaTitulo(detalhesPecaDB?.status) }}
-                          </v-chip>
-                       </div>
-                       <div class="d-flex justify-space-between">
-                          <strong class="opacity-70">Criado por:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.autor || 'N/A' }}</span>
-                       </div>
-                       <div class="d-flex justify-space-between">
-                          <strong class="opacity-70">Data de Entrega:</strong> <span class="font-weight-medium"><v-icon size="x-small" class="mr-1">mdi-calendar</v-icon>{{ formatarData(detalhesPecaDB?.data_entrega) }}</span>
-                       </div>
-                       <div class="d-flex justify-space-between">
-                          <strong class="opacity-70">Quantidade:</strong> <span class="font-weight-medium">{{ detalhesPecaDB?.quantidade || 0 }} un.</span>
-                       </div>
-                       <div class="d-flex justify-space-between">
-                          <strong class="opacity-70">Produto Base:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.produto_nome || 'Não vinculado' }}</span>
-                       </div>
-                       <div class="d-flex justify-space-between">
-                          <strong class="opacity-70">Tecido:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.tecido_nome || 'N/A' }}</span>
-                       </div>
-                       <div class="d-flex justify-space-between">
-                          <strong class="opacity-70">Estampa:</strong> <span class="font-weight-medium text-right">{{ detalhesPecaDB?.estampa_nome || 'N/A' }}</span>
-                       </div>
-
-                       <div v-if="detalhesPecaDB?.descricao" class="mt-2">
-                         <strong class="opacity-70 d-block mb-1">Observações:</strong>
-                         <div class="pa-3 rounded border text-caption" :class="themeStore?.currentMode === 'light' ? 'bg-white border-grey-lighten-3' : 'bg-grey-darken-3 border-white-05'">{{ detalhesPecaDB?.descricao }}</div>
-                       </div>
-                    </div>
-                 </v-card>
-              </v-col>
-
-              <v-col cols="12" md="6" class="pl-md-2 mt-4 mt-md-0 h-100">
-                 <div class="text-caption font-weight-black text-uppercase mb-2 opacity-70 tracking-widest"><v-icon size="small" class="mr-1">mdi-timeline-clock-outline</v-icon> Histórico de Etapas</div>
-                 <v-card variant="outlined" class="pa-4 rounded-lg overflow-y-auto custom-scroll" style="height: 55vh;" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-5 border-grey-lighten-2' : 'bg-grey-darken-4 border-white-05'">
-                    <v-timeline density="compact" side="end" align="start" truncate-line="both">
-                      <v-timeline-item v-for="etapa in etapasVisiveis" :key="etapa.id"
-                        :dot-color="etapa.dataSaida ? 'success' : 'primary'"
-                        :icon="etapa.dataSaida ? 'mdi-check' : 'mdi-circle-medium'" size="small">
-                        <div class="mb-3">
-                           <div class="font-weight-bold text-body-2 d-flex align-center justify-space-between">
-                              {{ etapa.titulo }}
-                           </div>
-                           <div class="text-caption text-medium-emphasis mt-1 d-flex flex-column gap-1">
-                             <div class="d-flex align-center"><v-icon size="x-small" class="mr-1">mdi-login</v-icon> Entrada: {{ etapa.dataEntrada }}</div>
-                             <div class="d-flex align-center" v-if="etapa.dataSaida"><v-icon size="x-small" class="mr-1 text-success">mdi-logout</v-icon> Saída: {{ etapa.dataSaida }}</div>
-                           </div>
-                        </div>
-                      </v-timeline-item>
-                    </v-timeline>
-                    <div v-if="etapasVisiveis.length === 0" class="text-caption text-center opacity-60 py-8 d-flex flex-column align-center">
-                        <v-icon size="large" class="mb-2">mdi-history</v-icon>
-                        Nenhum histórico registrado.
-                    </div>
-                 </v-card>
-              </v-col>
-           </v-row>
-        </v-card-text>
-        <v-card-actions class="pa-4 border-t d-flex justify-space-between align-center" :class="themeStore?.currentMode === 'light' ? 'bg-grey-lighten-4' : 'bg-grey-darken-4'">
-           <div></div>
-           <div class="d-flex gap-3 align-center">
-             <v-btn variant="tonal" class="px-5 font-weight-bold text-none" @click="exibirModalDetalhesPeca = false">Fechar</v-btn>
-             <v-btn color="primary" variant="flat" class="px-5 font-weight-bold text-none" prepend-icon="mdi-download" @click="baixarPDFDoCard(detalhesPecaDB || pecaSelecionada)">
-               Baixar Dossiê (PDF)
-             </v-btn>
-           </div>
-        </v-card-actions>
       </v-card>
     </v-dialog>
 
@@ -623,9 +554,6 @@ import { useCompanyStore } from '@/stores/company';
 import { useThemeStore } from '@/stores/theme';
 import { supabase } from '@/api/supabase';
 import { useAppStore } from '@/stores/app';
-
-// @ts-ignore
-import html2pdf from 'html2pdf.js';
 
 const appStore = useAppStore();
 const themeStore = useThemeStore()

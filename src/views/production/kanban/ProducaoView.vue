@@ -360,7 +360,7 @@
                <div class="text-caption text-medium-emphasis">Dossiê de produção e mapeamento de operadores</div>
              </div>
           </div>
-          <v-btn icon="mdi-close" variant="text" density="comfortable" @click="exibirModalDetalhesPeca = false; mostrarModalFeed = true"></v-btn>
+          <v-btn icon="mdi-close" variant="text" density="comfortable" @click="exibirModalDetalhesPeca = false"></v-btn>
         </v-card-title>
         <v-divider></v-divider>
 
@@ -507,7 +507,7 @@
            <div></div>
            
            <div class="d-flex gap-3 align-center">
-             <v-btn variant="tonal" class="px-5 font-weight-bold text-none" @click="exibirModalDetalhesPeca = false; mostrarModalFeed = true">
+             <v-btn variant="tonal" class="px-5 font-weight-bold text-none" @click="exibirModalDetalhesPeca = false">
                Voltar
              </v-btn>
 
@@ -523,14 +523,14 @@
              </v-btn>
 
              <v-btn 
-                color="error" 
+                color="success" 
                 variant="flat" 
                 class="px-5 font-weight-bold text-none" 
                 prepend-icon="mdi-file-pdf-box" 
                 v-if="etapaPDV" 
                 @click="baixarPDF(etapaPDV.id)"
              >
-               Baixar Comprovante Envio
+               Envio pra loja
              </v-btn>
            </div>
         </v-card-actions>
