@@ -22,7 +22,7 @@
 
         <div class="d-flex align-center flex-wrap" style="gap: 10px; justify-content: end;">
 
-          <v-btn :color="themeStore.currentMode === 'light' ? 'grey-darken-3' : 'white'" variant="outlined"
+          <v-btn :color="themeStore.currentMode === 'light' ? 'grey-darken-3' : 'white'" variant="outlined" v-if="userStore.profile.permissions.includes('mfg_producao_cadastrar')"
             class="btn-3d px-4 font-weight-bold text-caption text-uppercase" height="40" append-icon="mdi-plus"
             @click="abrirModalCadastro">
             Produção
@@ -182,9 +182,9 @@
 
           <div class="column-content">
             <v-card v-for="peca in coluna.pecas" :key="peca.id" class="mb-3 transition-swing"
-              :class="{ 'is-draggable': isAdmin }"
+              :class="{ 'is-draggable': userStore.profile.permissions.includes('mfg_producao_arrastar'), 'hover-elevate': userStore.profile.permissions.includes('mfg_producao_arrastar') }"
               :style="{ borderLeft: getStatusPrazo(peca)?.pulsa ? '4px solid rgb(var(--v-theme-error))' : `4px solid ${coluna.cor}` }"
-              :draggable="isAdmin" @dragstart="onDragStart($event, peca, coluna.id)"
+              :draggable="userStore.profile.permissions.includes('mfg_producao_arrastar')" @dragstart="onDragStart($event, peca, coluna.id)"
               @click="peca.expanded = !peca.expanded" hover>
               <v-card-item class="pb-2 pt-3 px-3">
                 <div class="d-flex justify-space-between align-start mb-2">
@@ -193,7 +193,7 @@
                     <span>{{ getTempoDecorrido(peca) }}</span>
                   </div>
 
-                  <div v-if="isAdmin" class="d-flex gap-1 align-center">
+                  <div v-if="userStore.profile.permissions.includes('mfg_producao_arrastar')" class="d-flex gap-1 align-center">
                     <v-menu location="bottom end">
                       <template v-slot:activator="{ props }">
                         <v-btn 
@@ -697,8 +697,6 @@ const appStore = useAppStore();
 const themeStore = useThemeStore()
 const userStore = useUserStore();
 const companyStore = useCompanyStore();
-
-const isAdmin = computed(() => userStore.profile?.role === 'super_admin');
 
 interface Peca {
   id: string
@@ -1249,7 +1247,7 @@ const pecaArrastada = ref<Peca | null>(null)
 const originIdArrasto = ref<string>('')
 
 const onDragStart = (event: DragEvent, peca: Peca, origemId: string) => {
-  if (!isAdmin.value) return;
+  if (!userStore.profile.permissions.includes('mfg_producao_arrastar')) return;
   pecaArrastada.value = peca;
   originIdArrasto.value = origemId
 }

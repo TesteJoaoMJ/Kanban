@@ -360,7 +360,10 @@ const updatedPermissionTree = computed(() => {
                 { name: 'Entidades Comerciais', items: [
                     { value: 'cad_clients', label: 'Gestão de Clientes', tables: ['customers_mj'] },
                     { value: 'cad_suppliers', label: 'Gestão de Fornecedores', tables: ['suppliers_mj'] },
-                    { value: 'cad_machines', label: 'Gestão de Máquinas', tables: ['machines_mj'] }
+                    { value: 'cad_machines', label: 'Gestão de Máquinas', tables: ['machines_mj'] },
+                    { value: 'cad_machines_adicionar', label: 'Gestão de Máquinas Adicionar', tables: ['machines_mj'] },
+                    { value: 'cad_machines_editar', label: 'Gestão de Máquinas Editar', tables: ['machines_mj'] },
+                    { value: 'cad_machines_excluir', label: 'Gestão de Máquinas Excluir', tables: ['machines_mj'] }
                 ]}
             ]
         },
@@ -417,8 +420,19 @@ const updatedPermissionTree = computed(() => {
                 { name: 'Chão de Fábrica', items: [
                     { value: 'mfg_launches', label: 'Painel de Lançamentos', tables: [] },
                     { value: 'mfg_control', label: 'Acesso Geral ao PCP', tables: [] },
+
                     { value: 'mfg_colecao', label: 'Kanban Coleção', tables: [] },
+                    { value: 'mfg_colecao_arrastar', label: 'Arrastar card em coleção', tables: [] },
+                    { value: 'mfg_colecao_editar', label: 'Editar card em coleção', tables: [] },
+                    { value: 'mfg_colecao_excluir', label: 'Excluir card em coleção', tables: [] },
+                    { value: 'mfg_colecao_cadastrar', label: 'Cadastrar card em coleção', tables: [] },
+
                     { value: 'mfg_producao', label: 'Kanban Produção', tables: [] },
+                    { value: 'mfg_producao_arrastar', label: 'Arrastar card em produção', tables: [] },
+                    { value: 'mfg_producao_editar', label: 'Editar card em produção', tables: [] },
+                    { value: 'mfg_producao_excluir', label: 'Excluir card em produção', tables: [] },
+                    { value: 'mfg_producao_cadastrar', label: 'Cadastrar card em produção', tables: [] },
+
                     { value: 'mfg_printing', label: 'Estação de Impressão (Módulo Solo)', tables: [] },
                     { value: 'mfg_release', label: 'Liberação e Qualidade', tables: [] },
                     { value: 'mfg_in_production', label: 'Rastreio Em Produção', tables: [] }

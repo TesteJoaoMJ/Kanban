@@ -22,7 +22,7 @@
 
         <div class="d-flex align-center flex-wrap" style="gap: 10px;">
 
-          <v-btn :color="themeStore.currentMode === 'light' ? 'grey-darken-3' : 'white'" variant="outlined"
+          <v-btn :color="themeStore.currentMode === 'light' ? 'grey-darken-3' : 'white'" variant="outlined" v-if="userStore.profile.permissions.includes('mfg_colecao_cadastrar')"
             class="btn-3d px-4 font-weight-bold text-caption text-uppercase" height="40" append-icon="mdi-plus"
             @click="abrirModalCadastro">
             Coleção
@@ -180,9 +180,9 @@
 
           <div class="column-content">
             <v-card v-for="peca in coluna.pecas" :key="peca.id" class="mb-3 transition-swing"
-              :class="{ 'is-draggable': isAdmin }"
+              :class="{ 'is-draggable': userStore.profile.permissions.includes('mfg_colecao_arrastar'), 'hover-elevate': userStore.profile.permissions.includes('mfg_colecao_arrastar') }"
               :style="{ borderLeft: getStatusPrazo(peca)?.pulsa ? '4px solid rgb(var(--v-theme-error))' : `4px solid ${coluna.cor}` }"
-              :draggable="isAdmin" @dragstart="onDragStart($event, peca, coluna.id)"
+              :draggable="userStore.profile.permissions.includes('mfg_colecao_arrastar')" @dragstart="onDragStart($event, peca, coluna.id)"
               @click="peca.expanded = !peca.expanded" hover>
               <v-card-item class="pb-2 pt-3 px-3">
                 <div class="d-flex justify-space-between align-start mb-2">
@@ -191,7 +191,7 @@
                     <span>{{ getTempoDecorrido(peca.created_at) }}</span>
                   </div>
 
-                  <div v-if="isAdmin" class="d-flex gap-1 align-center">
+                  <div v-if="userStore.profile.permissions.includes('mfg_colecao_arrastar')" class="d-flex gap-1 align-center">
                     <v-menu location="bottom end">
                       <template v-slot:activator="{ props }">
                         <v-btn 
@@ -218,12 +218,12 @@
                       </v-list>
                     </v-menu>
 
-                    <v-btn icon size="x-small" variant="text" color="medium-emphasis"
+                    <v-btn icon size="x-small" variant="text" color="medium-emphasis" v-if="userStore.profile.permissions.includes('mfg_colecao_editar')"
                       @click.stop="abrirModalEdicao(peca)">
                       <v-icon>mdi-pencil-outline</v-icon>
                       <v-tooltip activator="parent" location="top">Editar modelo</v-tooltip>
                     </v-btn>
-                    <v-btn icon size="x-small" variant="text" color="error" @click.stop="removeritem(peca)">
+                    <v-btn icon size="x-small" variant="text" color="error" @click.stop="removeritem(peca)" v-if="userStore.profile.permissions.includes('mfg_colecao_excluir')">
                       <v-icon>mdi-trash-can-outline</v-icon>
                       <v-tooltip activator="parent" location="top">Excluir modelo</v-tooltip>
                     </v-btn>
@@ -250,7 +250,7 @@
                     formatarPecaEquivalente(peca.produto_nome ) }}</div>
                 </div>
 
-                <div v-if="isAdmin && coluna.id === 'pilotagem'" class="mt-2">
+                <div v-if="userStore.profile.permissions.includes('mfg_colecao_cadastrar') && coluna.id === 'pilotagem'" class="mt-2">
                   <v-btn block size="small" variant="tonal" color="primary" @click.stop="abrirModalProducao(peca)">
                     Enviar para produção
                   </v-btn>
@@ -531,7 +531,6 @@ const themeStore = useThemeStore()
 const userStore = useUserStore();
 const companyStore = useCompanyStore();
 
-const isAdmin = computed(() => userStore.profile?.role === 'super_admin');
 const tenantStore = computed(() => userStore.adminSelectedStore);
 
 interface Peca {
@@ -719,8 +718,9 @@ const etapasVisiveis = computed(() => {
 });
 
 const buscarListasAuxiliares = async () => {
+  console.log(userStore.profile)
   try {
-    const { data: tecidos } = await supabase.from('stock').select('id, fabric_type').order('fabric_type').eq('target_tab', 'production').eq('visible_in_sales', true)
+    const { data: tecidos } = await supabase.from('stock').select('id, fabric_type').order('fabric_type').eq('target_tab', 'tab_2kc7pi').eq('visible_in_sales', true)
     if (tecidos) listaTecidos.value = tecidos
     const { data: estampas } = await supabase.from('catalog_stamps').select('id, title').order('title')
     if (estampas) listaEstampas.value = estampas
@@ -989,7 +989,7 @@ const colunaOrigemId = ref<string>(''); const colunaDestino = ref<string>(''); c
 const pecaArrastada = ref<Peca | null>(null); const origemArrastoId = ref<string>('')
 
 const onDragStart = (event: DragEvent, peca: Peca, origemId: string) => { 
-  if (!isAdmin.value) return; 
+  if (!userStore.profile.permissions.includes('mfg_colecao_arrastar')) return; 
   pecaArrastada.value = peca; 
   origemArrastoId.value = origemId 
 }

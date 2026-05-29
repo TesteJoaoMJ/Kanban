@@ -3,13 +3,11 @@
     class="machines-layout font-sans fill-height d-flex flex-column relative overflow-hidden"
     :class="themeStore.currentMode === 'light' ? 'bg-grey-lighten-5 text-grey-darken-4' : 'bg-glass-dark text-white'"
   >
-    <!-- Background Dark Mode -->
     <div v-if="themeStore.currentMode !== 'light'" class="background-carousel-wrapper">
       <div class="background-overlay"></div>
     </div>
 
     <div class="content-wrapper d-flex flex-column fill-height z-10 relative">
-      <!-- Cabeçalho -->
       <div
         class="header-bar px-6 py-4 d-flex align-center justify-space-between flex-shrink-0"
         :class="themeStore.currentMode === 'light' ? 'bg-white border-b border-grey-lighten-2 shadow-sm' : 'bg-glass-header border-bottom-white-05'"
@@ -32,13 +30,13 @@
             prepend-icon="mdi-plus-box"
             height="40"
             @click="openModal(null)"
+            v-if="userStore.profile.permissions.includes('mfg_maquinas_cadastrar')"
           >
             Nova Máquina
           </v-btn>
         </div>
       </div>
 
-      <!-- KPIs -->
       <div class="px-6 pt-4 pb-2 flex-shrink-0">
         <v-row dense>
           <v-col cols="12" sm="6" md="4">
@@ -85,7 +83,6 @@
         </v-row>
       </div>
 
-      <!-- Barra de Controles e Pesquisa -->
       <div class="px-6 pt-2 pb-2 flex-shrink-0">
         <div class="controls-bar d-flex align-center justify-space-between" :class="themeStore.currentMode === 'light' ? 'controls-light' : 'controls-dark'">
           <div class="d-flex align-center flex-wrap" style="gap: 10px; width: 100%;">
@@ -107,20 +104,21 @@
         </div>
       </div>
 
-      <!-- Grid de Dados -->
       <div class="flex-grow-1 px-6 pb-6 overflow-hidden d-flex flex-column">
         <v-card class="flex-grow-1 d-flex flex-column rounded-0 border-thin overflow-hidden" :class="themeStore.currentMode === 'light' ? 'bg-white shadow-sm' : 'glass-card border-white-05'" :elevation="0">
           
           <div class="grid-scroll flex-grow-1 overflow-y-auto custom-scroll">
-            <!-- Header da Grid -->
-            <div class="grid-header sticky-head" :class="[themeStore.currentMode === 'light' ? 'grid-surface-light' : 'grid-surface-dark', 'grid-layout']">
+            <div 
+              class="grid-header sticky-head" 
+              :class="themeStore.currentMode === 'light' ? 'grid-surface-light' : 'grid-surface-dark'"
+              :style="dynamicGridLayout"
+            >
               <div class="cell header-text pl-6">Nome da Máquina</div>
               <div class="cell header-text">Tipo (Setor)</div>
               <div class="cell header-text">Data de Cadastro</div>
-              <div class="cell center header-text">Ações</div>
+              <div class="cell center header-text" v-if="hasActionPermission">Ações</div>
             </div>
 
-            <!-- Loading e Empty States -->
             <div v-if="loading" class="d-flex flex-column justify-center align-center h-100 py-12">
               <v-progress-circular indeterminate color="primary" size="32" width="3"></v-progress-circular>
             </div>
@@ -129,8 +127,14 @@
               <span class="text-body-2 font-weight-medium text-grey">Nenhuma máquina encontrada.</span>
             </div>
 
-            <!-- Linhas -->
-            <div v-else v-for="(m, index) in filteredMachines" :key="m.id" class="grid-row grid-layout" :class="[themeStore.currentMode === 'light' ? 'grid-row-light' : 'grid-row-dark', zebraClass(index)]">
+            <div 
+              v-else 
+              v-for="(m, index) in filteredMachines" 
+              :key="m.id" 
+              class="grid-row" 
+              :class="[themeStore.currentMode === 'light' ? 'grid-row-light' : 'grid-row-dark', zebraClass(index)]"
+              :style="dynamicGridLayout"
+            >
               
               <div class="cell pl-6">
                 <div class="d-flex align-center w-100">
@@ -153,16 +157,16 @@
                 </span>
               </div>
 
-              <div class="cell center">
+              <div class="cell center" v-if="hasActionPermission">
                 <div class="actions-inline">
-                  <v-tooltip text="Editar" location="top" content-class="bg-black text-white font-weight-bold">
+                  <v-tooltip text="Editar" location="top" content-class="bg-black text-white font-weight-bold" v-if="userStore.profile.permissions.includes('mfg_maquinas_editar')">
                     <template v-slot:activator="{ props }">
                       <v-btn v-bind="props" icon size="x-small" class="action-btn action-edit" @click="openModal(m)">
                         <v-icon size="16">mdi-pencil</v-icon>
                       </v-btn>
                     </template>
                   </v-tooltip>
-                  <v-tooltip text="Excluir" location="top" content-class="bg-black text-white font-weight-bold">
+                  <v-tooltip text="Excluir" location="top" content-class="bg-black text-white font-weight-bold" v-if="userStore.profile.permissions.includes('mfg_maquinas_excluir')">
                     <template v-slot:activator="{ props }">
                       <v-btn v-bind="props" icon size="x-small" class="action-btn action-del" @click="deleteMachine(m.id, m.nome)">
                         <v-icon size="16">mdi-trash-can-outline</v-icon>
@@ -186,7 +190,6 @@
 
     </div>
 
-    <!-- Modal Responsável por Editar/Criar -->
     <MachineDetailsModal v-model:show="modal.show" :machine="modal.data" @refresh="fetchMachines" />
   </div>
 </template>
@@ -196,11 +199,13 @@ import { ref, computed, onMounted, reactive } from 'vue';
 import { supabase } from '@/api/supabase';
 import { useThemeStore } from '@/stores/themeStore';
 import { useCompanyStore } from '@/stores/company';
-import MachineDetailsModal from '@/components/registrations/MachineDetailsModal.vue';
+import { useUserStore } from '@/stores/user';
 import { format } from 'date-fns';
+import MachineDetailsModal from '@/components/registrations/MachineDetailsModal.vue';
 
 const themeStore = useThemeStore();
 const companyStore = useCompanyStore();
+const userStore = useUserStore();
 
 const machines = ref<any[]>([]);
 const loading = ref(false);
@@ -258,7 +263,18 @@ const fetchMachines = async () => {
   }
 };
 
-// Computed Properties (Search & KPIs)
+// Computed Properties (Search, KPIs & Layout)
+const hasActionPermission = computed(() => {
+  const perms = userStore.profile?.permissions || [];
+  return perms.includes('mfg_maquinas_editar') || perms.includes('mfg_maquinas_excluir');
+});
+
+const dynamicGridLayout = computed(() => ({
+  gridTemplateColumns: hasActionPermission.value 
+    ? '2fr 1.5fr 1.5fr 100px' 
+    : '2fr 1.5fr 1.5fr'
+}));
+
 const filteredMachines = computed(() => {
   let list = machines.value;
   if (search.value) {
@@ -370,7 +386,6 @@ onMounted(fetchMachines);
 .custom-scroll::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.35); border-radius: 0px; }
 
 .grid-header, .grid-row { display: grid; align-items: stretch; width: 100%; border-bottom: 1px solid rgba(0,0,0,0.08); }
-.grid-layout { grid-template-columns: 2fr 1.5fr 1.5fr 100px; }
 .cell { padding: 8px 10px; display: flex; align-items: center; border-right: 1px solid rgba(0,0,0,0.08); min-height: 52px; overflow: hidden; }
 .cell:last-child { border-right: none; }
 .center { justify-content: center; text-align: center; }

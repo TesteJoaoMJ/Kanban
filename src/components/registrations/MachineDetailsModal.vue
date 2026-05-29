@@ -139,12 +139,12 @@ const saveNewType = async () => {
   }
 
   newTypeModal.loading = true;
-  try {
+  try {;
     // Insere e já pede para retornar os dados criados (.select().single())
     const { data, error } = await supabase
       .from('type_machines')
       .insert({ nome: newTypeModal.nome.trim(), empresa_id: companyStore.currentCompany?.id })
-      .select('id, nome')
+      .select('id, nome, empresa_id')
       .single();
 
     if (error) throw error;
@@ -179,7 +179,8 @@ const save = async () => {
   try {
     const payload = {
       nome: form.value.nome,
-      tipo: form.value.tipo
+      tipo: form.value.tipo,
+      empresa_id: companyStore.currentCompany?.id
     };
 
     if (form.value.id) {
